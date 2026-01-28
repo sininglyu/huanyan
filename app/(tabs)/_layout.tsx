@@ -19,8 +19,8 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'AI测肤',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="viewfinder" color={color} />,
         }}
       />
       <Tabs.Screen
