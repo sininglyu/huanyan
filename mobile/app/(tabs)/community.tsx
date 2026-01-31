@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { StyleSheet, View, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { apiGet, getAuthToken } from '@/constants/api';
+import { apiGet } from '@/constants/api';
+import { useAuth } from '@/contexts/auth-context';
 
 type PostItem = { id: string; title: string; likeCount: number; commentCount: number; author?: { nickname: string } };
 
@@ -13,21 +14,37 @@ export default function CommunityScreen() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const colors = Colors[colorScheme ?? 'light'];
+  const { isAuthenticated, refreshToken } = useAuth();
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await apiGet<{ items: PostItem[] }>('/community/posts?limit=20');
-        setPosts(res.items ?? []);
-      } catch {
-        setPosts([]);
-      } finally {
-        setLoading(false);
+  const fetchPosts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await apiGet<{ items: PostItem[] }>('/community/posts?limit=20');
+      setPosts(res.items ?? []);
+    } catch (error) {
+      // If 401, try to refresh token
+      if (error instanceof Error && error.message.includes('401')) {
+        await refreshToken();
       }
-    })();
-  }, []);
+      setPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshToken]);
+
+  // Fetch posts on mount and when auth state changes
+  useEffect(() => {
+    fetchPosts();
+  }, [isAuthenticated, fetchPosts]);
+
+  // Refetch when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      fetchPosts();
+    }, [fetchPosts])
+  );
 
   return (
     <ThemedView style={styles.container}>

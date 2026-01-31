@@ -1,11 +1,74 @@
 ---
 name: Logto Auth Integration
-overview: "Complete Logto Cloud authentication for the Huanyan app: configure redirect URL and connectors (SMS, WeChat) in Logto Console, implement sign-in/sign-up screens matching the attached UI design, integrate Logto RN SDK with the backend, and update the backend to validate Logto tokens instead of custom JWT."
-todos: []
+overview: "Complete Logto Cloud authentication for the Huanyan app: configure redirect URL and email-only sign-in in Logto Console, implement sign-in/sign-up screens, integrate Logto RN SDK with the backend, and ensure authenticated users receive real-time data from protected API routes."
+todos:
+  - id: logto-console-redirect
+    content: Add redirect URI huanyan://callback in Logto Console
+    status: pending
+  - id: logto-console-email
+    content: Set up Email connector in Logto Console
+    status: pending
+  - id: logto-console-signin
+    content: Configure sign-in experience (email + password only)
+    status: pending
+  - id: logto-console-api
+    content: Create API resource and role with permissions in Logto Console
+    status: pending
+  - id: mobile-env
+    content: Create mobile/.env with EXPO_PUBLIC_LOGTO_* vars
+    status: completed
+  - id: mobile-logto-provider
+    content: Add LogtoProvider and LogtoConfig to app/_layout.tsx
+    status: completed
+  - id: mobile-auth-layout
+    content: Create (auth)/_layout.tsx stack layout
+    status: completed
+  - id: mobile-signin-screen
+    content: Create (auth)/sign-in.tsx with 欢迎回来 UI
+    status: completed
+  - id: mobile-signup-screen
+    content: Create (auth)/sign-up.tsx with 开启美丽之旅 UI
+    status: completed
+  - id: mobile-auth-guard
+    content: Add auth guard and routing in root _layout.tsx
+    status: completed
+  - id: mobile-token-sync
+    content: Create useAuthEffect/AuthContext to fetch access token and call setAuthToken when authenticated
+    status: completed
+  - id: mobile-signout
+    content: Add sign-out (signOut + setAuthToken null) in profile/settings
+    status: completed
+  - id: backend-jose
+    content: Install jose in backend
+    status: completed
+  - id: backend-logto-auth
+    content: Create backend/src/lib/logto-auth.ts for JWT validation
+    status: completed
+  - id: backend-auth-middleware
+    content: Update auth middleware to use Logto validation
+    status: completed
+  - id: backend-schema
+    content: Add logto_user_id column to users schema
+    status: completed
+  - id: backend-migration
+    content: Create Drizzle migration for logto_user_id
+    status: completed
+  - id: backend-user-sync
+    content: Create user sync helper (Logto sub -> local user)
+    status: completed
+  - id: backend-env
+    content: Add LOGTO_ENDPOINT and LOGTO_API_RESOURCE to backend .env
+    status: completed
+  - id: backend-deprecate-auth
+    content: Deprecate /register and /login in auth routes
+    status: completed
+  - id: mobile-refetch
+    content: Add useEffect/useFocusEffect to refetch data on auth change in profile and community
+    status: completed
 isProject: false
 ---
 
-# Logto Authentication Integration Plan
+# Logto Authentication Integration Plan (Email Only)
 
 ## Architecture Overview
 
@@ -21,10 +84,8 @@ flowchart TB
     
     subgraph Logto [Logto Cloud]
         SignInPage[Hosted Sign-in Page]
-        SMS[SMS Connector]
-        WeChat[WeChat Connector]
-        SignInPage --> SMS
-        SignInPage --> WeChat
+        Email[Email Connector]
+        SignInPage --> Email
     end
     
     subgraph Backend [Express API]
@@ -39,9 +100,7 @@ flowchart TB
     Backend -->|validate via JWKS| Logto
 ```
 
-
-
-**Flow:** User taps "登录" or "注册并登录" on the app screen, which calls `signIn('huanyan://callback')`. The SDK opens the system browser to Logto's hosted sign-in page (where SMS, WeChat, and other methods are configured). After authentication, Logto redirects back to `huanyan://callback`, and the app receives tokens. The app uses the Logto access token when calling your backend API.
+**Flow:** User taps "登录" or "注册并登录" on the app screen, which calls `signIn('huanyan://callback')`. The SDK opens the system browser to Logto's hosted sign-in page (email + password). After authentication, Logto redirects back to `huanyan://callback`, and the app receives tokens. The app fetches an access token for your backend API resource, stores it, and sends it as `Authorization: Bearer <token>` on every API call so protected routes return real-time data.
 
 ---
 
@@ -55,38 +114,30 @@ flowchart TB
 
 Your app already has `"scheme": "huanyan"` in [mobile/app.json](mobile/app.json), which matches this redirect URI for Android. iOS does not require scheme registration for `ASWebAuthenticationSession`.
 
-### 1.2 SMS Connector
+### 1.2 Email Connector
 
 - Go to **Connectors** -> **Email and SMS connectors** -> Set up
-- Choose a provider: **Aliyun SMS**, **Tencent SMS**, or **HTTP SMS** (for custom providers)
-- Complete Parameter Configuration (API keys, templates)
-- Test with "Generic" template, then **Save and Done**
-- Reference: [SMS connectors docs](https://docs.logto.io/connectors/sms-connectors)
+- Choose **Email** and select a provider (e.g. SendGrid, SMTP)
+- Complete Parameter Configuration (SMTP host, user, password, etc.)
+- Test sending a verification email, then **Save and Done**
+- Reference: [Email connectors](https://docs.logto.io/connectors/email-connectors)
+- Note: Logto Cloud may offer a dev email option for testing; use it if available before configuring production SMTP.
 
-### 1.3 WeChat Connector
-
-- Go to **Connectors** -> **Social Connectors** -> Add social connector
-- For mobile apps opening Logto in a browser: use **WeChat (Web)** (simpler, uses QR/redirect on Logto page)
-- Create WeChat Open Platform app at [https://open.weixin.qq.com/](https://open.weixin.qq.com/)
-- Configure authorization callback domain with your Logto tenant domain
-- Add `clientId` and `clientSecret` in Logto connector config
-- Reference: [WeChat Web integration](https://docs.logto.io/integrations/wechat-web)
-
-### 1.4 Sign-in Experience
+### 1.3 Sign-in Experience (Email Only)
 
 - Go to **Sign-in experience** -> **Sign-up and sign-in**
-- **Sign-up identifiers:** Phone number (or "Email or phone number")
-- **Sign-up:** Enable "Verify at sign-up" (SMS), optionally "Create your password"
-- **Sign-in:** Add "Phone number" with "Password" or "Verification code"
-- **Social sign-in:** Enable WeChat (and optionally GitHub, Google)
+- **Sign-up identifiers:** Email address only
+- **Sign-up:** Enable "Verify at sign-up" (required for email), enable "Create your password"
+- **Sign-in:** Add "Email address" with "Password"
+- **Social sign-in:** Leave disabled (email only)
 - Save
 
-### 1.5 API Resource (for Backend)
+### 1.4 API Resource (for Backend)
 
 - Go to **API resources** -> Create
-- **Indicator:** `https://api.huanyan.com` (or your backend base URL, e.g. `http://localhost:3000` for dev)
+- **Indicator:** Must match exactly in Logto, mobile `resources` config, and backend validation. Use `https://api.huanyan.com` for production, or `http://localhost:3000` for dev (Logto Cloud may allow http for localhost).
 - **Permissions:** e.g. `read`, `write` or `api:read`, `api:write`
-- Create a **Role** that includes these permissions, assign to users (or default role for new users)
+- Create a **Role** that includes these permissions, assign to users (or set as default role for new users)
 
 ---
 
@@ -107,7 +158,7 @@ EXPO_PUBLIC_API_URL=http://localhost:3000
 Wrap the app in `LogtoProvider` in [mobile/app/_layout.tsx](mobile/app/_layout.tsx):
 
 - Import `LogtoProvider`, `LogtoConfig`, `UserScope` from `@logto/rn`
-- Add `scopes: [UserScope.Phone]` to request phone number in claims
+- Add `scopes: [UserScope.Email]` to request email in claims
 - Add `resources: [API_BASE or your API resource indicator]` so the app can obtain access tokens for your backend
 - Use `endpoint` and `appId` from env
 
@@ -121,20 +172,18 @@ Create an auth route group to match the UI in your images:
 
 **Sign-in screen (sign-in.tsx):**
 
-- Title: "欢迎回来", subtitle: "使用手机号登录您的GlowAI 账号"
-- Decorative input placeholders (phone, password) – actual auth happens on Logto
+- Title: "欢迎回来", subtitle: "使用邮箱登录您的 GlowAI 账号"
+- Decorative input placeholders (email, password) – actual auth happens on Logto
 - Primary button "登录" → `signIn('huanyan://callback')`
 - Links: "没有账号?立即注册" → router to sign-up, "忘记密码?" (Logto handles this on its page)
-- "其他方式登录" with WeChat/GitHub/Google icons → same `signIn()` (Logto page shows these)
 - Footer: 用户协议, 隐私政策 (links as needed)
 
 **Sign-up screen (sign-up.tsx):**
 
 - Title: "开启美丽之旅", subtitle: "立即注册,获取专属 AI 护肤方案"
-- Decorative placeholders (手机号码, 短信验证码, 密码)
+- Decorative placeholders (邮箱, 验证码, 密码)
 - Primary button "注册并登录" → `signIn('huanyan://callback')`
 - Link: "已有账号?去登录" → router to sign-in
-- Social icons → same `signIn()`
 - Footer: same as sign-in
 
 Use `useLogto()` for `signIn`, `signOut`, `isAuthenticated`, `isLoading`.
@@ -144,16 +193,22 @@ Use `useLogto()` for `signIn`, `signOut`, `isAuthenticated`, `isLoading`.
 - Update [mobile/app/_layout.tsx](mobile/app/_layout.tsx) to:
   - Wrap content in `LogtoProvider`
   - Use `useLogto` to read `isAuthenticated` and `isLoading`
-  - When `!isAuthenticated` and not loading: redirect or render `(auth)` routes
-  - When authenticated: show `(tabs)` (and other main routes)
-- Option: Use expo-router's redirect in layout based on auth state
+  - When `isLoading`: show splash or loading indicator
+  - When `!isAuthenticated` and not loading: redirect to `/(auth)/sign-in` or render `(auth)` routes only
+  - When authenticated: show `(tabs)` and main app routes; fetch access token and call `setAuthToken` before any protected route mounts
+- Use expo-router's `redirect` in root layout based on auth state so unauthenticated users cannot access tabs
 
-### 2.5 Token Integration with API
+### 2.5 Token Integration with API (Critical for Real-time Data)
 
-- After successful sign-in, call `getAccessToken(apiResourceIndicator)` from `useLogto`
-- Pass this token to [mobile/constants/api.ts](mobile/constants/api.ts): `setAuthToken(accessToken)`
-- Ensure `api.ts` sends `Authorization: Bearer <token>` on requests
-- Consider a small auth context or hook that: (1) runs on app init, (2) checks `isAuthenticated`, (3) if true, fetches access token and calls `setAuthToken`
+To ensure authenticated users receive real-time data from protected routes:
+
+- Create an `AuthContext` or `useAuthEffect` hook that runs when `isAuthenticated` becomes true:
+  1. Call `getAccessToken(apiResourceIndicator)` from `useLogto`
+  2. Call `setAuthToken(accessToken)` in [mobile/constants/api.ts](mobile/constants/api.ts)
+  3. Logto SDK handles token refresh; re-fetch and update token before expiry when making API calls
+- Ensure [mobile/constants/api.ts](mobile/constants/api.ts) sends `Authorization: Bearer <token>` on every request when token is set
+- In profile, community, and other data screens: use `useFocusEffect` or `useEffect` with `isAuthenticated` as dependency so data refetches when user signs in
+- Verify that `getAuthToken()` returns the Logto access token before any `apiGet`/`apiPost` calls; without this, protected routes return 401 and no data
 
 ### 2.6 Sign-out and Profile
 
@@ -203,7 +258,7 @@ LOGTO_API_RESOURCE=https://api.huanyan.com
 
 ### 3.5 Deprecate Custom Auth Routes
 
-- [backend/src/routes/auth.ts](backend/src/routes/auth.ts): Remove or deprecate `/register` and `/login` (phone/openId + custom JWT)
+- [backend/src/routes/auth.ts](backend/src/routes/auth.ts): Remove or deprecate `/register` and `/login` (custom JWT-based auth)
 - Keep `/me` but ensure it uses the new Logto-based middleware
 
 ---
@@ -231,18 +286,30 @@ LOGTO_API_RESOURCE=https://api.huanyan.com
 
 ## Part 5: Optional Enhancements
 
-- **Forgot password:** Handled by Logto when enabled in sign-in experience; link can stay as-is if it opens Logto
+- **Forgot password:** Handled by Logto when enabled in sign-in experience; link can stay as-is
 - **User agreement / Privacy policy:** Add real links in footer
 - **Profile sync:** Use `fetchUserInfo()` or `getIdTokenClaims()` to display name/avatar from Logto
-- **WeChat Native:** For in-app WeChat login without leaving the app, use WeChat (Native) connector and integrate WeChat SDK; more complex and platform-specific
+
+---
+
+## Part 6: Real-time Data Verification
+
+To confirm authentication and data flow work correctly:
+
+1. **Token availability:** After sign-in, before rendering tabs, the app must call `getAccessToken(apiResourceIndicator)` and `setAuthToken(token)`. Profile and community screens rely on `getAuthToken()` for API calls.
+2. **API requests:** [mobile/constants/api.ts](mobile/constants/api.ts) attaches `Authorization: Bearer ${token}` when `token` is set. Verify that profile, community, and analysis endpoints receive the token.
+3. **Backend response:** Protected routes (`/user/profile`, `/user/skin-reports`, `/analysis/history`, `/community/posts`, etc.) must use Logto auth middleware and return real data for the authenticated user.
+4. **Token refresh:** Logto RN SDK handles refresh tokens. If an API call returns 401, the app should call `getAccessToken` again (it will use refresh token) and retry, or redirect to sign-in if refresh fails.
+5. **Refetch on auth change:** Profile and community screens should refetch data when `isAuthenticated` becomes true (e.g. via `useEffect` depending on auth state) so data appears immediately after sign-in.
 
 ---
 
 ## Testing Checklist
 
-1. Logto Console: Redirect URI, SMS connector, WeChat connector, sign-in experience, API resource
-2. Mobile: Sign-in button opens Logto, complete sign-in, redirect back, token stored
-3. Mobile: Sign-up flow works via Logto
-4. Backend: Protected routes accept Logto access token and reject invalid tokens
-5. End-to-end: Sign in on mobile, call API, receive correct user context
+1. **Logto Console:** Redirect URI `huanyan://callback`, Email connector, sign-in experience (email + password), API resource, role with permissions
+2. **Mobile:** Sign-in button opens Logto, complete email sign-in, redirect back to app, token stored via `setAuthToken`
+3. **Mobile:** Sign-up flow works via Logto (email verification + password)
+4. **Backend:** Protected routes accept Logto access token and reject invalid/missing tokens
+5. **End-to-end:** Sign in on mobile, navigate to Profile and Community, verify real data loads (profile, skin reports, posts)
+6. **Sign-out:** Sign out, verify tabs redirect to sign-in, and API calls no longer include token
 

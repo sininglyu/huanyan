@@ -13,8 +13,10 @@ import {
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
+  logtoUserId: varchar('logto_user_id', { length: 128 }).unique(), // Logto sub claim
   phone: varchar('phone', { length: 20 }).unique(),
   openId: varchar('open_id', { length: 128 }).unique(),
+  email: varchar('email', { length: 256 }).unique(), // User's email from Logto
   nickname: varchar('nickname', { length: 64 }).notNull(),
   avatarUrl: text('avatar_url'),
   level: smallint('level').default(1).notNull(),
