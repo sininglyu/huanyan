@@ -3,6 +3,7 @@ import express from 'express';
 import { apiRouter } from './routes/index';
 import { apiError, ERROR_CODES } from './lib/errors';
 import { config } from './config/index';
+import { initializeCronJobs } from './lib/cron';
 
 const app = express();
 
@@ -31,4 +32,7 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 
 app.listen(config.port, () => {
   console.log(`Huanyan API listening on port ${config.port}`);
+  
+  // Initialize cron jobs after server starts
+  initializeCronJobs();
 });
