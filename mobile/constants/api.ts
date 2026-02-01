@@ -3,6 +3,12 @@ const API_PREFIX = '/api/v1';
 
 export const API_BASE = `${BASE_URL}${API_PREFIX}`;
 
+/** Base URL for uploaded images (backend serves at /uploads) */
+export function getUploadsUrl(imagePath: string): string {
+  const base = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+  return `${base}/uploads/${(imagePath || '').replace(/^\/+/, '')}`;
+}
+
 export interface ErrorResponse {
   error: {
     code: string;

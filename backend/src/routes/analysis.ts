@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import multer from 'multer';
 import { db } from '../db';
 import { skinAnalyses } from '../db/schema';
@@ -6,8 +6,12 @@ import { eq, and, desc, lt } from 'drizzle-orm';
 import { apiError, ERROR_CODES } from '../lib/errors';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { getImagePath, saveBuffer } from '../lib/storage';
+import { callAILabSkinAnalysis, AILabError } from '../lib/ailab';
+import { transformToReport } from '../lib/skin-report-transformer';
 
 export const analysisRouter = Router();
+
+const AILAB_MAX_SIZE = 2 * 1024 * 1024; // 2 MB
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -18,31 +22,39 @@ analysisRouter.post('/upload', authMiddleware, upload.single('image'), async (re
   if (!req.userId) return res.status(401).json(apiError(ERROR_CODES.AUTH.UNAUTHORIZED, 'Unauthorized'));
   const file = req.file;
   if (!file) return res.status(400).json(apiError(ERROR_CODES.ANALYSIS.IMAGE_TOO_SMALL, 'No image file'));
-  const ext = file.mimetype === 'image/png' ? '.png' : '.jpg';
+
+  // AILab accepts JPG/JPEG only, max 2 MB
+  if (file.mimetype !== 'image/jpeg' && file.mimetype !== 'image/jpg') {
+    return res.status(400).json(apiError(ERROR_CODES.ANALYSIS.IMAGE_TOO_SMALL, 'Please use JPG/JPEG format. PNG is not supported.'));
+  }
+  if (file.size > AILAB_MAX_SIZE) {
+    return res.status(400).json(apiError(ERROR_CODES.ANALYSIS.IMAGE_TOO_SMALL, 'Image size must not exceed 2 MB'));
+  }
+
+  const ext = '.jpg';
   const imagePath = getImagePath(req.userId, ext);
   await saveBuffer(imagePath, file.buffer);
-  const mockResult = {
-    skinType: 'combination' as const,
-    skinTone: 'neutral' as const,
-    faceShape: 'oval',
-    issues: [{ type: 'dark_circles', label: '黑眼圈', severity: 1 as const }],
-    makeupState: 'none',
-    makeupStyles: [
-      { id: '1', name: '日常', steps: ['保湿打底', '轻透底妆', '自然眉'] },
-      { id: '2', name: '职场', steps: ['遮瑕', '哑光底妆', '大地色眼影'] },
-      { id: '3', name: '约会', steps: ['提亮', '轻薄底妆', '粉色系眼唇'] },
-    ],
-    skincareRoutine: { morning: ['洁面', '爽肤水', '精华', '乳液', '防晒'], evening: ['卸妆', '洁面', '爽肤水', '精华', '面霜'], weekly: ['面膜'] },
-    productRecommendations: [],
-    score: 82,
-  };
+
+  let ailabResponse;
+  try {
+    ailabResponse = await callAILabSkinAnalysis(file.buffer);
+  } catch (err) {
+    if (err instanceof AILabError) {
+      const status = err.errorCode === ERROR_CODES.ANALYSIS.NO_FACE_DETECTED ? 422 : 400;
+      return res.status(status).json(apiError(err.errorCode, err.message));
+    }
+    throw err;
+  }
+
+  const report = transformToReport(ailabResponse.result!);
+
   const [row] = await db
     .insert(skinAnalyses)
     .values({
       userId: req.userId,
       imagePath,
-      resultJson: mockResult as unknown as Record<string, unknown>,
-      score: mockResult.score,
+      resultJson: report as unknown as Record<string, unknown>,
+      score: report.score,
     })
     .returning();
   return res.status(201).json({ analysisId: row.id });

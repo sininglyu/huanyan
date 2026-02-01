@@ -125,15 +125,28 @@ export default function ProfileScreen() {
             <View style={[styles.chartPlaceholder, { backgroundColor: colorScheme === 'dark' ? '#2a2a2a' : '#f3f4f6' }]}>
               <ThemedText style={styles.placeholderText}>11.10  11.11  11.12  11.13  11.14  11.15</ThemedText>
             </View>
-            <TouchableOpacity style={styles.recordCard} onPress={() => router.push('/profile/analysis/placeholder-id')}>
-              <View style={[styles.recordThumb, { backgroundColor: colors.primaryLight }]} />
-              <View style={styles.recordInfo}>
-                <ThemedText>2023-11-20</ThemedText>
-                <ThemedText type="defaultSemiBold">得分: 82</ThemedText>
-                <ThemedText style={styles.recordIssue}>黑眼圈</ThemedText>
+            {analysisHistory.length === 0 ? (
+              <View style={styles.placeholder}>
+                <ThemedText>暂无分析记录</ThemedText>
+                <ThemedText style={styles.placeholderHint}>去 AI 测肤 拍摄照片获取分析</ThemedText>
               </View>
-              <ThemedText>›</ThemedText>
-            </TouchableOpacity>
+            ) : (
+              analysisHistory.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.recordCard}
+                  onPress={() => router.push(`/profile/analysis/${item.id}`)}
+                >
+                  <View style={[styles.recordThumb, { backgroundColor: colors.primaryLight }]} />
+                  <View style={styles.recordInfo}>
+                    <ThemedText>{item.createdAt ? new Date(item.createdAt).toLocaleDateString('zh-CN') : '-'}</ThemedText>
+                    <ThemedText type="defaultSemiBold">得分: {item.score ?? '-'}</ThemedText>
+                    <ThemedText style={styles.recordIssue}>查看详情</ThemedText>
+                  </View>
+                  <ThemedText>›</ThemedText>
+                </TouchableOpacity>
+              ))
+            )}
           </>
         )}
         {tab === 'favorites' && (
@@ -179,4 +192,5 @@ const styles = StyleSheet.create({
   recordInfo: { flex: 1, marginLeft: 12 },
   recordIssue: { fontSize: 12, color: '#6B7280', marginTop: 4 },
   placeholder: { padding: 40, alignItems: 'center' },
+  placeholderHint: { fontSize: 12, opacity: 0.7, marginTop: 8 },
 });

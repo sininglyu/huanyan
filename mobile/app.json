@@ -43,6 +43,12 @@
           "enableMicrophonePermission": true,
           "microphonePermissionText": "焕颜 needs access to your Microphone."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "焕颜 needs access to your photos for skin analysis."
+        }
       ]
     ],
     "experiments": {

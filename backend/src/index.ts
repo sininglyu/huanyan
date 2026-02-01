@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import path from 'path';
 import express from 'express';
 import { apiRouter } from './routes/index';
 import { apiError, ERROR_CODES } from './lib/errors';
@@ -12,6 +13,9 @@ app.use(express.json({ limit: '10mb' }));
 app.get('/health', (_req, res) => {
   res.json({ ok: true, env: config.env });
 });
+
+const uploadDir = process.env.UPLOAD_DIR ?? path.join(process.cwd(), 'uploads');
+app.use('/uploads', express.static(uploadDir));
 
 app.use('/api/v1', apiRouter);
 
