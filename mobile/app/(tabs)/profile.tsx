@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { apiGet, getAuthToken } from '@/constants/api';
+import { useAuth } from '@/contexts/auth-context';
 
 type ProfileTab = 'analysis' | 'favorites' | 'checkin';
 
@@ -13,35 +14,56 @@ export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const colors = Colors[colorScheme ?? 'light'];
+  const { isAuthenticated, refreshToken } = useAuth();
   const [tab, setTab] = useState<ProfileTab>('analysis');
   const [profile, setProfile] = useState<{ nickname?: string; currentStreak?: number; totalLikesReceived?: number } | null>(null);
   const [skinReports, setSkinReports] = useState<{ averageScore?: number; changePercent?: number } | null>(null);
   const [analysisHistory, setAnalysisHistory] = useState<Array<{ id: string; score?: number; createdAt?: string }>>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchData = useCallback(async () => {
     const token = getAuthToken();
     if (!token) {
       setLoading(false);
       return;
     }
-    (async () => {
-      try {
-        const [p, reports, history] = await Promise.all([
-          apiGet<{ nickname: string; currentStreak: number; totalLikesReceived: number }>('/user/profile'),
-          apiGet<{ averageScore: number; changePercent: number }>('/user/skin-reports?period=month'),
-          apiGet<{ items: Array<{ id: string; score: number; createdAt: string }> }>('/analysis/history'),
-        ]);
-        setProfile(p);
-        setSkinReports(reports);
-        setAnalysisHistory(history.items ?? []);
-      } catch {
-        // ignore
-      } finally {
-        setLoading(false);
+    setLoading(true);
+    try {
+      const [p, reports, history] = await Promise.all([
+        apiGet<{ nickname: string; currentStreak: number; totalLikesReceived: number }>('/user/profile'),
+        apiGet<{ averageScore: number; changePercent: number }>('/user/skin-reports?period=month'),
+        apiGet<{ items: Array<{ id: string; score: number; createdAt: string }> }>('/analysis/history'),
+      ]);
+      setProfile(p);
+      setSkinReports(reports);
+      setAnalysisHistory(history.items ?? []);
+    } catch (error) {
+      // If 401, try to refresh token
+      if (error instanceof Error && error.message.includes('401')) {
+        await refreshToken();
       }
-    })();
-  }, []);
+    } finally {
+      setLoading(false);
+    }
+  }, [refreshToken]);
+
+  // Fetch data on mount and when auth state changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchData();
+    } else {
+      setLoading(false);
+    }
+  }, [isAuthenticated, fetchData]);
+
+  // Refetch when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated && getAuthToken()) {
+        fetchData();
+      }
+    }, [isAuthenticated, fetchData])
+  );
 
   if (loading) {
     return (

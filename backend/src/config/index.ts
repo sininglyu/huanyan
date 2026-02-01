@@ -8,4 +8,8 @@ export const config = {
     expiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
   },
   rateLimit: parseInt(process.env.API_RATE_LIMIT ?? '100', 10),
+  logto: {
+    endpoint: process.env.LOGTO_ENDPOINT ?? '',
+    apiResource: process.env.LOGTO_API_RESOURCE ?? '',
+  },
 };

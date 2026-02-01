@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
@@ -7,6 +7,7 @@ export default function CaptureScreen() {
   const router = useRouter();
   const { hasPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice('front');
+  const cameraRef = useRef<Camera>(null);
   const [analyzing, setAnalyzing] = useState(false);
 
   useEffect(() => {
