@@ -3,6 +3,7 @@ import { StyleSheet, View, TouchableOpacity, Text, ActivityIndicator, Alert, Pla
 import { useRouter } from 'expo-router';
 import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 import { apiUploadFormData, getAuthToken } from '@/constants/api';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function CaptureScreen() {
   const router = useRouter();
@@ -10,6 +11,7 @@ export default function CaptureScreen() {
   const device = useCameraDevice('front');
   const cameraRef = useRef<Camera>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
 
   useEffect(() => {
     if (!hasPermission) requestPermission();
@@ -107,19 +109,53 @@ export default function CaptureScreen() {
 
   return (
     <View style={styles.container}>
-      <Camera ref={cameraRef} style={StyleSheet.absoluteFill} device={device} isActive={!analyzing} photo />
-      <View style={styles.overlay}>
+      <Camera
+        ref={cameraRef}
+        style={StyleSheet.absoluteFill}
+        device={device}
+        isActive={!analyzing}
+        photo
+        torch={torchOn ? 'on' : 'off'}
+      />
+      <View style={styles.topBar} pointerEvents="box-none">
+        <TouchableOpacity
+          style={styles.topBarBtn}
+          onPress={handlePickFromGallery}
+          disabled={analyzing}
+        >
+          <IconSymbol name="photo.fill" size={28} color="#fff" />
+        </TouchableOpacity>
+        <View style={styles.realtimePill}>
+          <View style={styles.redDot} />
+          <Text style={styles.realtimeText}>实时扫描</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.topBarBtn}
+          onPress={() => setTorchOn((v) => !v)}
+          disabled={analyzing}
+        >
+          <IconSymbol name="bolt.fill" size={28} color="#fff" />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.faceGuideOverlay} pointerEvents="none">
+        <View style={styles.faceOvalWrap}>
+          <View style={styles.faceOval} />
+          <View style={[styles.faceOvalLine, styles.faceOvalLineTop]} />
+          <View style={[styles.faceOvalLine, styles.faceOvalLineMid]} />
+          <View style={[styles.faceOvalLine, styles.faceOvalLineBottom]} />
+        </View>
+      </View>
+      <View style={styles.bottomOverlay} pointerEvents="box-none">
         {analyzing ? (
           <ActivityIndicator size="large" color="#fff" />
         ) : (
-          <View style={styles.buttons}>
-            <TouchableOpacity style={styles.captureBtn} onPress={handleAnalyze}>
-              <Text style={styles.captureText}>拍照分析</Text>
+          <>
+            <Text style={styles.alignText}>对准面部</Text>
+            <Text style={styles.alignHint}>请将面部置于框内并确保光线充足</Text>
+            <TouchableOpacity style={styles.captureButton} onPress={handleAnalyze}>
+              <View style={styles.captureButtonInner} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.galleryBtn} onPress={handlePickFromGallery}>
-              <Text style={styles.galleryText}>从相册选择</Text>
-            </TouchableOpacity>
-          </View>
+          </>
         )}
       </View>
     </View>
@@ -127,13 +163,92 @@ export default function CaptureScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#000' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  hint: { marginTop: 12 },
-  overlay: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 48 },
-  buttons: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  captureBtn: { backgroundColor: '#E91E8C', paddingHorizontal: 24, paddingVertical: 16, borderRadius: 24 },
-  captureText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  galleryBtn: { backgroundColor: 'rgba(255,255,255,0.3)', paddingHorizontal: 24, paddingVertical: 16, borderRadius: 24, borderWidth: 2, borderColor: '#fff' },
-  galleryText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  hint: { marginTop: 12, color: '#fff' },
+  topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 56,
+    paddingBottom: 12,
+  },
+  topBarBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  realtimePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 8,
+  },
+  redDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#f44' },
+  realtimeText: { color: '#fff', fontSize: 14, fontWeight: '500' },
+  faceGuideOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  faceOvalWrap: {
+    width: 220,
+    height: 280,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  faceOval: {
+    ...StyleSheet.absoluteFillObject,
+    width: 220,
+    height: 280,
+    borderRadius: 140,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.5)',
+    borderStyle: 'dashed',
+  },
+  faceOvalLine: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255,152,0,0.8)',
+    height: 2,
+  },
+  faceOvalLineTop: { width: 120, top: 50, left: 50, marginLeft: -60 },
+  faceOvalLineMid: { width: 180, top: 138, left: 20, marginTop: -1 },
+  faceOvalLineBottom: { width: 100, top: 226, left: 60, marginLeft: -50 },
+  bottomOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    paddingBottom: 48,
+    paddingHorizontal: 24,
+  },
+  alignText: { color: '#fff', fontSize: 20, fontWeight: '600', marginBottom: 8 },
+  alignHint: { color: 'rgba(255,255,255,0.8)', fontSize: 14, marginBottom: 24 },
+  captureButton: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  captureButtonInner: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
 });

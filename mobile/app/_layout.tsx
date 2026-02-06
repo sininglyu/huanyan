@@ -19,7 +19,7 @@ const logtoConfig: LogtoConfig = {
 };
 
 export const unstable_settings = {
-  initialRouteName: '(auth)',
+  initialRouteName: '(welcome)',
 };
 
 function RootLayoutNav() {
@@ -29,19 +29,21 @@ function RootLayoutNav() {
   const segments = useSegments();
   const router = useRouter();
 
-  // Handle auth-based navigation
+  // Handle auth-based navigation (do not redirect when on welcome - user taps CTA to go to auth or tabs)
   React.useEffect(() => {
     if (!isReady || isLoading) {
       return;
     }
 
+    const inWelcome = segments[0] === '(welcome)';
     const inAuthGroup = segments[0] === '(auth)';
 
+    if (inWelcome) {
+      return;
+    }
     if (isAuthenticated && inAuthGroup) {
-      // User is authenticated but in auth screens, redirect to main app
       router.replace('/(tabs)');
     } else if (!isAuthenticated && !inAuthGroup) {
-      // User is not authenticated and trying to access protected routes
       router.replace('/(auth)/sign-in');
     }
   }, [isReady, isAuthenticated, isLoading, segments, router]);
@@ -58,6 +60,7 @@ function RootLayoutNav() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(welcome)" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="ai" />

@@ -1,140 +1,201 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { StyleSheet, View, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import React from 'react';
+import {
+  StyleSheet,
+  View,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  ImageBackground,
+  Platform,
+  Dimensions,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { apiGet } from '@/constants/api';
-import { useAuth } from '@/contexts/auth-context';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
-type PostItem = { id: string; title: string; likeCount: number; commentCount: number; author?: { nickname: string } };
+// Design tokens from HTML: primary #C69C6D, primary-dark #8C6B4B, background #fffaf9, accent #F5E6D3
+const COMMUNITY_COLORS = {
+  primary: '#C69C6D',
+  primaryDark: '#8C6B4B',
+  background: '#fffaf9',
+  accent: '#F5E6D3',
+  text: '#161412',
+  subtitle: '#81766a',
+  zinc400: '#a1a1aa',
+  zinc500: '#71717a',
+  border: 'rgba(198, 156, 109, 0.1)',
+  cardBg: '#FFFFFF',
+};
+
+const GROUP_CARDS = [
+  {
+    label: '油皮战士',
+    members: '2400 成员',
+    imageUri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCGzO4vibrIVycx--Qe8fd1txo7rLzn6XVmUlmBaPBSdojNJM0LNN6flXzpNwu2GBzX_cDaNAbMoFI7Uv-2FeoAB8ayeQOnneXRSy4064jgdaZy3yYN2jllHyndyMJHVjkSk_OPQ4BsWmX-5DISl3CEmI6fiI9MxtioZBYkSHxBApsFHKR4hY7mVTtJGAYk5sxyeRBk-LTRLJJLYXGks6VorARIzreF33BhYiZbpjF1Hc3-KYovDFmAlcsVWZk7N2bZf97vnPkhKV3T',
+  },
+  {
+    label: '抗老先锋',
+    members: '5100 成员',
+    imageUri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCRwPXfeLH3yq8ErR3yRPNXBl-nm7abTENaQZr_Q9KYAQdUzGCjndlNTl6CykFm35PBvk5w1g_UaO8-wjYkM1lJ8MjUe1iyMKMMr6hikkNz4oCrFbkFk-bN72c4p6Ije_8klqBAp_Rb0Yssli1t3hccqpvdE_RCp4Pn_nV973C2-gY7I_xbZ-hmjte5buBsgZxThnViZ-LsgJvWCHc-pVz8vUZ4x1y6LPHzdWxxcf3Y4sYCZIZ_pguJOFZpeqmXtJq4xydLw6_7fFyM',
+  },
+  {
+    label: '祛痘历程',
+    members: '1.2万 成员',
+    imageUri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDxNWwcGcV9yCzENGCGkb3JDmGRJJfJttSCAkCVd8cN-_vKrIBd7nYUbLmPe57rsBtcNlGHLOKsjB2HFzhDwWg5QAdhc__dKyljZy1My4OFWB2E_leAxE2oluKmiCKWoa2SF0XwIMg3eTR3wP9Tq5_2I6N8ATVhGMoDnG_PBd_Dt6qzu77SrWJ0r4gXSptpOIR78IQLTmeNWgBj-EutemWAm--ikOBHhxTqqcQSVsf1foOioMyj1KNQe1jAdMMZ4xVZpCUVAcmGhZ2Q',
+  },
+  {
+    label: '敏肌呵护',
+    members: '1800 成员',
+    imageUri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDTf2N6Bj0APcnS3SchyhQQQ7hazORHzl-7Opj7IzY3CDmixuVZB9hce5JWKrajaLDfIv37Wzlr-PfFEnE9LZ0WMCSeUGF8RGLIRHLz41kfwyCKyayZA6mkyUpU5efnZwtC5CyCh4cZo1qJluMrvQg_7hMeEtV1Dmbim4nZEDvJehh6jvVC33C_O-rRK_eveyv5oQXxLxYUdeQiDTWmgAAboldOxU-Yz53-PIXVCwnV_HoEu6HhtbRyoAqGwS92fF18W1xYqAEhxygg',
+  },
+];
+
+const DISCUSSIONS = [
+  { title: 'SPF 50 防晒真的有区别吗？', meta: '245 评论 • 12分钟前', up: '1.2k', icon: 'local_fire_department' as const },
+  { title: '评测：Bloom 推出的新款玻尿酸精华', meta: '89 评论 • 1小时前', up: '842', icon: 'spa' as const },
+  { title: '维C和视黄醇可以混合使用吗？', meta: '156 评论 • 3小时前', up: '612', icon: 'science' as const },
+];
+
+const cardStyle = {
+  backgroundColor: COMMUNITY_COLORS.cardBg,
+  borderRadius: 12,
+  borderWidth: 1,
+  borderColor: COMMUNITY_COLORS.border,
+  ...Platform.select({
+    ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
+    android: { elevation: 3 },
+  }),
+};
+
+const { width } = Dimensions.get('window');
+const CARD_GAP = 16;
+const PADDING = 16;
+const GROUP_CARD_SIZE = (width - PADDING * 2 - CARD_GAP) / 2;
 
 export default function CommunityScreen() {
-  const colorScheme = useColorScheme();
-  const router = useRouter();
-  const colors = Colors[colorScheme ?? 'light'];
-  const { isAuthenticated, refreshToken } = useAuth();
-  const [posts, setPosts] = useState<PostItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchPosts = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await apiGet<{ items: PostItem[] }>('/community/posts?limit=20');
-      setPosts(res.items ?? []);
-    } catch (error) {
-      // If 401, try to refresh token
-      if (error instanceof Error && error.message.includes('401')) {
-        await refreshToken();
-      }
-      setPosts([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [refreshToken]);
-
-  // Fetch posts on mount and when auth state changes
-  useEffect(() => {
-    fetchPosts();
-  }, [isAuthenticated, fetchPosts]);
-
-  // Refetch when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      fetchPosts();
-    }, [fetchPosts])
-  );
-
   return (
-    <ThemedView style={styles.container}>
-      <View style={styles.header}>
-        <TextInput
-          style={[styles.search, { backgroundColor: colorScheme === 'dark' ? '#2a2a2a' : '#f3f4f6' }]}
-          placeholder="搜索肤质、产品、技巧..."
-          placeholderTextColor={colors.subtitle}
-        />
-        <TouchableOpacity style={styles.addButton} onPress={() => router.push('/community/create')}>
-          <ThemedText style={styles.addButtonText}>+</ThemedText>
+    <ThemedView style={[styles.container, { backgroundColor: COMMUNITY_COLORS.background }]}>
+      {/* Sticky header: menu, title (cursive/primary), notifications */}
+      <View style={[styles.header, { backgroundColor: COMMUNITY_COLORS.background + 'CC', borderBottomColor: COMMUNITY_COLORS.border }]}>
+        <TouchableOpacity style={styles.headerBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <IconSymbol name="menu" size={24} color={COMMUNITY_COLORS.primary} />
+        </TouchableOpacity>
+        <ThemedText style={[styles.headerTitle, { color: COMMUNITY_COLORS.primary }]}>
+          焕颜社区中心
+        </ThemedText>
+        <TouchableOpacity style={styles.headerBtn}>
+          <IconSymbol name="notifications" size={24} color={COMMUNITY_COLORS.primary} />
         </TouchableOpacity>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categories}>
-        <TouchableOpacity style={[styles.categoryChip, { borderColor: colors.primary }]}>
-          <ThemedText style={[styles.categoryText, { color: colors.primary }]}>全部</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.categoryChip}>
-          <ThemedText>新手区</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.categoryChip}>
-          <ThemedText>产品评测</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.categoryChip}>
-          <ThemedText>技巧分享</ThemedText>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.categoryChip}>
-          <ThemedText>今日热榜</ThemedText>
-        </TouchableOpacity>
-      </ScrollView>
-      <ScrollView style={styles.content}>
-        <View style={[styles.banner, { backgroundColor: colors.primaryLight + '40' }]}>
-          <ThemedText type="subtitle">新人护肤第一课</ThemedText>
-          <ThemedText style={styles.bannerSub}>避开测肤常见的3个误区</ThemedText>
+
+      {/* Search bar */}
+      <View style={styles.searchSection}>
+        <View style={[styles.searchWrap, cardStyle]}>
+          <IconSymbol name="search" size={20} color={COMMUNITY_COLORS.subtitle} />
+          <TextInput
+            style={[styles.searchInput, { color: COMMUNITY_COLORS.text }]}
+            placeholder="搜索群组或讨论"
+            placeholderTextColor={COMMUNITY_COLORS.subtitle}
+            editable={false}
+          />
         </View>
-        {loading ? (
-          <ActivityIndicator size="large" color={colors.primary} style={{ marginVertical: 24 }} />
-        ) : posts.length > 0 ? (
-          posts.map((p) => (
-            <TouchableOpacity key={p.id} style={styles.postCard} onPress={() => router.push(`/community/post/${p.id}`)}>
-              <View style={styles.postHeader}>
-                <View style={styles.postAuthor}>
-                  <View style={[styles.avatar, { backgroundColor: colors.primaryLight }]} />
-                  <View>
-                    <ThemedText type="defaultSemiBold">{p.author?.nickname ?? '用户'}</ThemedText>
-                    <ThemedText style={styles.postMeta}>适合混合偏干肌肤</ThemedText>
+      </View>
+
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* 社区中心 */}
+        <View style={styles.sectionHeader}>
+          <ThemedText style={[styles.sectionTitle, { color: COMMUNITY_COLORS.text }]}>社区中心</ThemedText>
+          <ThemedText style={[styles.viewAll, { color: COMMUNITY_COLORS.primary }]}>查看全部</ThemedText>
+        </View>
+
+        <View style={styles.groupGrid}>
+          {GROUP_CARDS.map((g) => (
+            <TouchableOpacity
+              key={g.label}
+              style={[styles.groupCard, { width: GROUP_CARD_SIZE, height: GROUP_CARD_SIZE }]}
+              activeOpacity={0.9}
+            >
+              <ImageBackground
+                source={{ uri: g.imageUri }}
+                style={styles.groupCardBg}
+                imageStyle={styles.groupCardBgImage}
+              >
+                <LinearGradient
+                  colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.7)']}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View style={styles.groupCardContent}>
+                  <ThemedText style={styles.groupCardTitle}>{g.label}</ThemedText>
+                  <View style={styles.memberPill}>
+                    <ThemedText style={styles.memberPillText}>{g.members}</ThemedText>
                   </View>
                 </View>
-                <TouchableOpacity style={[styles.followBtn, { borderColor: colors.primary }]}>
-                  <ThemedText style={{ color: colors.primary }}>+ 关注</ThemedText>
-                </TouchableOpacity>
+              </ImageBackground>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* 热门讨论 */}
+        <ThemedText style={[styles.discussSectionTitle, { color: COMMUNITY_COLORS.text }]}>
+          热门讨论
+        </ThemedText>
+
+        <View style={styles.discussList}>
+          {DISCUSSIONS.map((d, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[styles.discussCard, cardStyle]}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.discussIconWrap, { backgroundColor: COMMUNITY_COLORS.primary + '1A' }]}>
+                <IconSymbol name={d.icon} size={22} color={COMMUNITY_COLORS.primary} />
               </View>
-              <ThemedText type="subtitle" style={styles.postTitle}>{p.title}</ThemedText>
-              <View style={styles.postActions}>
-                <ThemedText style={styles.actionItem}>♥ {p.likeCount}</ThemedText>
-                <ThemedText style={styles.actionItem}>💬 {p.commentCount}</ThemedText>
-                <ThemedText style={styles.actionItem}>分享</ThemedText>
-                <ThemedText style={styles.actionItem}>收藏</ThemedText>
+              <View style={styles.discussBody}>
+                <ThemedText style={[styles.discussTitle, { color: COMMUNITY_COLORS.text }]}>{d.title}</ThemedText>
+                <ThemedText style={[styles.discussMeta, { color: COMMUNITY_COLORS.zinc500 }]}>{d.meta}</ThemedText>
+              </View>
+              <View style={styles.discussUpCol}>
+                <IconSymbol name="arrow_drop_up" size={20} color={COMMUNITY_COLORS.zinc400} />
+                <ThemedText style={[styles.discussUp, { color: COMMUNITY_COLORS.primary }]}>{d.up}</ThemedText>
               </View>
             </TouchableOpacity>
-          ))
-        ) : (
-          <View style={styles.postCard}>
-            <View style={styles.postHeader}>
-              <View style={styles.postAuthor}>
-                <View style={[styles.avatar, { backgroundColor: colors.primaryLight }]} />
-                <View>
-                  <ThemedText type="defaultSemiBold">美妆博主小C</ThemedText>
-                  <ThemedText style={styles.postMeta}>1小时前 · 适合混合偏干肌肤</ThemedText>
-                </View>
+          ))}
+        </View>
+
+        {/* 寻找你的焕颜伙伴 */}
+        <View style={styles.bannerWrap}>
+          <LinearGradient
+            colors={[COMMUNITY_COLORS.primary, COMMUNITY_COLORS.accent]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.banner}
+          >
+            <View style={styles.bannerBlur} />
+            <TouchableOpacity style={styles.bannerClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+              <IconSymbol name="close" size={22} color="rgba(255,255,255,0.6)" />
+            </TouchableOpacity>
+            <View style={styles.bannerTopRow}>
+              <View style={styles.bannerIconWrap}>
+                <ThemedText style={styles.bannerEmoji}>🤝</ThemedText>
               </View>
-              <TouchableOpacity style={[styles.followBtn, { borderColor: colors.primary }]}>
-                <ThemedText style={{ color: colors.primary }}>+ 关注</ThemedText>
-              </TouchableOpacity>
             </View>
-            <ThemedText type="subtitle" style={styles.postTitle}>手把手教你画出呼吸感底妆</ThemedText>
-            <ThemedText style={styles.postBody}>最近很多姐妹问我怎么让妆容看起来通透不假面...</ThemedText>
-            <View style={styles.hashtags}>
-              <ThemedText style={{ color: colors.primary }}>#底妆教程 </ThemedText>
-              <ThemedText style={{ color: colors.primary }}>#自然妆容 </ThemedText>
-              <ThemedText style={{ color: colors.primary }}>#新手必看</ThemedText>
+            <View style={styles.bannerTextBlock}>
+              <ThemedText style={styles.bannerTitle}>寻找你的焕颜伙伴</ThemedText>
+              <ThemedText style={styles.bannerSub}>
+                与拥有相同肤质的人联系，获取互相激励和护肤贴士。
+              </ThemedText>
             </View>
-            <View style={styles.postActions}>
-              <ThemedText style={styles.actionItem}>♥ 2450</ThemedText>
-              <ThemedText style={styles.actionItem}>💬 188</ThemedText>
-              <ThemedText style={styles.actionItem}>分享</ThemedText>
-              <ThemedText style={styles.actionItem}>收藏</ThemedText>
-            </View>
-          </View>
-        )}
+            <TouchableOpacity
+              style={[styles.bannerBtn, { backgroundColor: '#fff' }]}
+              activeOpacity={0.9}
+            >
+              <ThemedText style={[styles.bannerBtnText, { color: COMMUNITY_COLORS.primary }]}>
+                开始匹配
+              </ThemedText>
+            </TouchableOpacity>
+          </LinearGradient>
+        </View>
       </ScrollView>
     </ThemedView>
   );
@@ -142,25 +203,142 @@ export default function CommunityScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
-  search: { flex: 1, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14 },
-  addButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E91E8C', alignItems: 'center', justifyContent: 'center' },
-  addButtonText: { color: '#fff', fontSize: 24, fontWeight: '300' },
-  categories: { maxHeight: 44, paddingHorizontal: 16, marginBottom: 8 },
-  categoryChip: { marginRight: 8, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'transparent' },
-  categoryText: {},
-  content: { flex: 1, paddingHorizontal: 16 },
-  banner: { borderRadius: 12, padding: 20, marginBottom: 16 },
-  bannerSub: { marginTop: 4, opacity: 0.9 },
-  postCard: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.06)' },
-  postHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  postAuthor: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  avatar: { width: 40, height: 40, borderRadius: 20 },
-  postMeta: { fontSize: 12, opacity: 0.7, marginTop: 2 },
-  followBtn: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
-  postTitle: { marginBottom: 8 },
-  postBody: { fontSize: 14, opacity: 0.85, marginBottom: 8 },
-  hashtags: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 12 },
-  postActions: { flexDirection: 'row', gap: 20 },
-  actionItem: { fontSize: 13, opacity: 0.8 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'ios' ? 56 : 48,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+  },
+  headerBtn: { width: 48, height: 48, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 28, fontWeight: '600', flex: 1, textAlign: 'center', letterSpacing: -0.5 },
+  searchSection: { paddingHorizontal: 16, paddingVertical: 12 },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 48,
+    paddingLeft: 16,
+    paddingRight: 16,
+    gap: 8,
+  },
+  searchInput: { flex: 1, fontSize: 14 },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: 28 },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  sectionTitle: { fontSize: 18, fontWeight: '700', letterSpacing: -0.3 },
+  viewAll: { fontSize: 14, fontWeight: '600' },
+  groupGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: CARD_GAP,
+    padding: 16,
+  },
+  groupCard: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6 },
+      android: { elevation: 4 },
+    }),
+  },
+  groupCardBg: { flex: 1 },
+  groupCardBgImage: { borderRadius: 12 },
+  groupCardContent: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    padding: 16,
+    gap: 12,
+  },
+  groupCardTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  memberPill: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 9999,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  memberPillText: { color: 'rgba(255,255,255,0.9)', fontSize: 10 },
+  discussSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.3,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    paddingTop: 16,
+  },
+  discussList: { paddingHorizontal: 16, gap: 12 },
+  discussCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 16,
+    gap: 16,
+  },
+  discussIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  discussBody: { flex: 1 },
+  discussTitle: { fontSize: 14, fontWeight: '700' },
+  discussMeta: { fontSize: 11, marginTop: 4, letterSpacing: 0.5, fontWeight: '600' },
+  discussUpCol: { alignItems: 'center' },
+  discussUp: { fontSize: 12, fontWeight: '700' },
+  bannerWrap: { padding: 16, paddingBottom: 28 },
+  banner: {
+    borderRadius: 16,
+    padding: 24,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: { shadowColor: COMMUNITY_COLORS.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12 },
+      android: { elevation: 8 },
+    }),
+  },
+  bannerBlur: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 128,
+    height: 128,
+    borderRadius: 64,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    transform: [{ translateX: 24 }, { translateY: -48 }],
+  },
+  bannerClose: { position: 'absolute', top: 16, right: 16, zIndex: 1 },
+  bannerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  bannerIconWrap: {
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    padding: 8,
+    borderRadius: 8,
+  },
+  bannerEmoji: { fontSize: 24 },
+  bannerTextBlock: { marginTop: 16 },
+  bannerTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
+  bannerSub: { color: 'rgba(255,255,255,0.9)', fontSize: 14, marginTop: 4 },
+  bannerBtn: {
+    marginTop: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 4 },
+      android: { elevation: 2 },
+    }),
+  },
+  bannerBtnText: { fontSize: 14, fontWeight: '700' },
 });

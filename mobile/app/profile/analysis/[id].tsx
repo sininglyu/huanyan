@@ -10,11 +10,13 @@ import { apiGet, getUploadsUrl } from '@/constants/api';
 
 interface AnalysisResult {
   skinType: string;
-  issues: Array<{ type: string; label: string; severity: number }>;
-  wrinkles: string[];
-  pores: string[];
-  score: number;
-  skincareRoutine: { morning: string[]; evening: string[]; weekly: string[] };
+  score?: number;
+  overallScore?: number;
+  issues?: Array<{ type: string; label: string; severity: number }>;
+  wrinkles?: string[] | Array<{ id: string; label: string; present: boolean }>;
+  pores?: string[] | { zonesWithPores: string[] };
+  indicators?: Array<{ id: string; label: string; percent: number }>;
+  skincareRoutine?: { morning: string[]; evening: string[]; weekly: string[] };
   makeupStyles?: Array<{ id: string; name: string; steps: string[] }>;
 }
 
@@ -60,8 +62,18 @@ export default function AnalysisDetailScreen() {
   }
 
   const r = data.result;
-  const score = data.score ?? r?.score ?? 0;
+  const score = data.score ?? r?.overallScore ?? r?.score ?? 0;
   const dateStr = data.createdAt ? new Date(data.createdAt).toLocaleDateString('zh-CN') : '';
+  const wrinklesList = Array.isArray(r?.wrinkles)
+    ? r!.wrinkles![0] && typeof (r!.wrinkles as string[])[0] === 'string'
+      ? (r!.wrinkles as string[]).join(' · ')
+      : (r!.wrinkles as Array<{ label: string; present: boolean }>).filter((w) => w.present).map((w) => w.label).join(' · ')
+    : '';
+  const poresList = r?.pores
+    ? Array.isArray(r.pores)
+      ? (r.pores as string[]).join(' · ')
+      : (r.pores as { zonesWithPores: string[] }).zonesWithPores?.join(' · ') ?? ''
+    : '';
 
   return (
     <ThemedView style={styles.container}>
@@ -84,16 +96,24 @@ export default function AnalysisDetailScreen() {
             ))}
           </View>
         )}
-        {r?.wrinkles && r.wrinkles.length > 0 && (
+        {wrinklesList ? (
           <View style={styles.section}>
             <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>细纹</ThemedText>
-            <ThemedText style={styles.step}>{r.wrinkles.join(' · ')}</ThemedText>
+            <ThemedText style={styles.step}>{wrinklesList}</ThemedText>
           </View>
-        )}
-        {r?.pores && r.pores.length > 0 && (
+        ) : null}
+        {poresList ? (
           <View style={styles.section}>
             <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>毛孔</ThemedText>
-            <ThemedText style={styles.step}>{r.pores.join(' · ')}</ThemedText>
+            <ThemedText style={styles.step}>{poresList}</ThemedText>
+          </View>
+        ) : null}
+        {r?.indicators && r.indicators.length > 0 && (
+          <View style={styles.section}>
+            <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>详细指标</ThemedText>
+            {r.indicators.map((ind) => (
+              <ThemedText key={ind.id} style={styles.step}>{ind.label}: {ind.percent}%</ThemedText>
+            ))}
           </View>
         )}
         {r?.skincareRoutine && (

@@ -6,8 +6,8 @@ import { eq, and, desc, lt } from 'drizzle-orm';
 import { apiError, ERROR_CODES } from '../lib/errors';
 import { authMiddleware, AuthRequest } from '../middleware/auth';
 import { getImagePath, saveBuffer } from '../lib/storage';
-import { callAILabSkinAnalysis, AILabError } from '../lib/ailab';
-import { transformToReport } from '../lib/skin-report-transformer';
+import { callAILabSkinAnalysisAdvanced, AILabError } from '../lib/ailab';
+import { transformAdvancedToReport } from '../lib/skin-report-transformer';
 
 export const analysisRouter = Router();
 
@@ -37,7 +37,10 @@ analysisRouter.post('/upload', authMiddleware, upload.single('image'), async (re
 
   let ailabResponse;
   try {
-    ailabResponse = await callAILabSkinAnalysis(file.buffer);
+    ailabResponse = await callAILabSkinAnalysisAdvanced(file.buffer, {
+      return_rect_confidence: 1,
+      return_maps: 'red_area',
+    });
   } catch (err) {
     if (err instanceof AILabError) {
       const status = err.errorCode === ERROR_CODES.ANALYSIS.NO_FACE_DETECTED ? 422 : 400;
@@ -46,7 +49,11 @@ analysisRouter.post('/upload', authMiddleware, upload.single('image'), async (re
     throw err;
   }
 
-  const report = transformToReport(ailabResponse.result!);
+  const report = transformAdvancedToReport(
+    ailabResponse.result!,
+    ailabResponse.face_rectangle ?? null,
+    ailabResponse.warning ?? null
+  );
 
   const [row] = await db
     .insert(skinAnalyses)

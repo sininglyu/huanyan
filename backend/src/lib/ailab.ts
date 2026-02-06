@@ -66,6 +66,91 @@ export interface AILabSkinAnalysisResponse extends AILabPublicResponse {
   result?: AILabSkinAnalysisResult;
 }
 
+// --- Skin Analysis Advanced API types ---
+// Docs: https://www.ailabtools.com/docs/ai-portrait/analysis/skin-analysis-advanced/api
+
+export interface AILabRectangle {
+  width: number;
+  height: number;
+  left: number;
+  top: number;
+}
+
+export interface AILabAdvancedResultItem {
+  value: number;
+  confidence: number;
+}
+
+export interface AILabAdvancedSeverityItem {
+  value: number;
+  confidence: number;
+}
+
+export interface AILabSkintoneIta {
+  ITA?: number;
+  skintone?: number; // 0-6
+}
+
+export interface AILabSkinHueHa {
+  HA?: number;
+  skintone?: number; // 0-3
+}
+
+export interface AILabSensitivity {
+  sensitivity_area?: number; // 0-1
+  sensitivity_intensity?: number; // 0-100
+}
+
+export interface AILabFaceMaps {
+  red_area?: string; // base64
+}
+
+export interface AILabRectangleResult {
+  rectangle: AILabRectangle[];
+  confidence?: number[];
+}
+
+export interface AILabSkinAnalysisAdvancedResult {
+  skin_color?: AILabAdvancedResultItem;
+  skin_age?: { value: number };
+  skintone_ita?: AILabSkintoneIta;
+  skin_hue_ha?: AILabSkinHueHa;
+  left_eyelids?: AILabAdvancedResultItem;
+  right_eyelids?: AILabAdvancedResultItem;
+  eye_pouch?: AILabAdvancedResultItem;
+  eye_pouch_severity?: AILabAdvancedSeverityItem;
+  dark_circle?: AILabAdvancedResultItem;
+  forehead_wrinkle?: AILabAdvancedResultItem;
+  crows_feet?: AILabAdvancedResultItem;
+  eye_finelines?: AILabAdvancedResultItem;
+  glabella_wrinkle?: AILabAdvancedResultItem;
+  nasolabial_fold?: AILabAdvancedResultItem;
+  nasolabial_fold_severity?: AILabAdvancedSeverityItem;
+  skin_type?: AILabSkinTypeResult;
+  pores_forehead?: AILabAdvancedResultItem;
+  pores_left_cheek?: AILabAdvancedResultItem;
+  pores_right_cheek?: AILabAdvancedResultItem;
+  pores_jaw?: AILabAdvancedResultItem;
+  blackhead?: AILabAdvancedResultItem;
+  acne?: AILabRectangleResult;
+  closed_comedones?: AILabRectangleResult;
+  mole?: AILabRectangleResult;
+  skin_spot?: AILabRectangleResult;
+  face_maps?: AILabFaceMaps;
+  sensitivity?: AILabSensitivity;
+}
+
+export interface AILabSkinAnalysisAdvancedResponse extends AILabPublicResponse {
+  warning?: string[];
+  face_rectangle?: { top: number; left: number; width: number; height: number };
+  result?: AILabSkinAnalysisAdvancedResult;
+}
+
+export interface AILabSkinAnalysisAdvancedOptions {
+  return_rect_confidence?: 0 | 1;
+  return_maps?: string; // e.g. 'red_area'
+}
+
 export class AILabError extends Error {
   constructor(
     message: string,
@@ -138,6 +223,68 @@ export async function callAILabSkinAnalysis(imageBuffer: Buffer): Promise<AILabS
   }
 
   // HTTP error but no parsed body
+  if (!response.ok) {
+    throw new AILabError(
+      data.error_msg ?? `Request failed: ${response.statusText}`,
+      'ANALYSIS_003',
+      response.status
+    );
+  }
+
+  if (!data.result) {
+    throw new AILabError('No analysis result returned', 'ANALYSIS_003', 500);
+  }
+
+  return data;
+}
+
+/**
+ * Call AILab skin-analysis-advanced API with image buffer.
+ * Image must be JPG/JPEG, max 5 MB per Advanced API docs.
+ */
+export async function callAILabSkinAnalysisAdvanced(
+  imageBuffer: Buffer,
+  options?: AILabSkinAnalysisAdvancedOptions
+): Promise<AILabSkinAnalysisAdvancedResponse> {
+  const apiKey = process.env.AILAB_API_KEY;
+  if (!apiKey) {
+    throw new AILabError('AILab API key not configured', 'ANALYSIS_003', 500);
+  }
+
+  const formData = new FormData();
+  formData.append('image', imageBuffer, {
+    filename: 'image.jpg',
+    contentType: 'image/jpeg',
+  });
+  if (options?.return_rect_confidence !== undefined) {
+    formData.append('return_rect_confidence', String(options.return_rect_confidence));
+  }
+  if (options?.return_maps) {
+    formData.append('return_maps', options.return_maps);
+  }
+
+  const body = formData.getBuffer();
+  const headers = {
+    'ailabapi-api-key': apiKey,
+    ...formData.getHeaders(),
+  };
+
+  const response = await fetch(`${AILAB_BASE_URL}/api/portrait/analysis/skin-analysis-advanced`, {
+    method: 'POST',
+    headers,
+    body,
+  });
+
+  const data = (await response.json()) as AILabSkinAnalysisAdvancedResponse;
+
+  if (data.error_code !== 0) {
+    const detail = data.error_detail;
+    const ailabCode = detail?.code ?? '';
+    const message = detail?.code_message ?? detail?.message ?? data.error_msg ?? 'Skin analysis failed';
+    const appCode = mapAILabErrorToAppCode(ailabCode);
+    throw new AILabError(message, appCode, data.error_code || response.status, ailabCode);
+  }
+
   if (!response.ok) {
     throw new AILabError(
       data.error_msg ?? `Request failed: ${response.statusText}`,

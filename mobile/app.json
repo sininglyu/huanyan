@@ -12,8 +12,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.example.huanyan",
       "infoPlist": {
-        "NSCameraUsageDescription": "焕颜 needs access to your Camera.",
-        "NSMicrophoneUsageDescription": "焕颜 needs access to your Microphone."
+        "NSCameraUsageDescription": "焕颜需要访问相机以进行皮肤扫描。",
+        "NSMicrophoneUsageDescription": "焕颜需要访问麦克风。",
+        "NSPhotoLibraryUsageDescription": "焕颜需要访问相册以选择照片进行分析。"
       }
     },
     "android": {

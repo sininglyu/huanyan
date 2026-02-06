@@ -1,47 +1,64 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Theme colors - 焕颜 design: warm beige/brown palette from UI mockups.
+ * Section boxes: white/light background with shadow so each section stands out from page background.
  */
 
-import { Platform } from 'react-native';
+import { Platform, ViewStyle } from 'react-native';
 
-const tintColorLight = '#E91E8C';
-const tintColorDark = '#F8B4D4';
+const primaryBrown = '#C4A77D';
+const primaryDark = '#8B7355';
+const tintLight = primaryBrown;
+const tintDark = '#E8DCC8';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
-    primary: '#E91E8C',
-    primaryLight: '#F8B4D4',
-    subtitle: '#6B7280',
+    text: '#5C4033',
+    background: '#F5F0E8',
+    tint: tintLight,
+    icon: '#8B7355',
+    tabIconDefault: '#8B7355',
+    tabIconSelected: primaryBrown,
+    primary: primaryBrown,
+    primaryLight: '#E8DCC8',
+    primaryDark: '#8B4513',
+    subtitle: '#6B5B4F',
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
-    primary: '#F8B4D4',
-    primaryLight: '#E91E8C',
-    subtitle: '#9CA3AF',
+    text: '#E8DCC8',
+    background: '#2A2520',
+    tint: tintDark,
+    icon: '#C4A77D',
+    tabIconDefault: '#8B7355',
+    tabIconSelected: tintDark,
+    primary: primaryBrown,
+    primaryLight: '#5C4033',
+    primaryDark: '#8B4513',
+    subtitle: '#9E9E9E',
   },
+};
+
+/** Section card: white background, subtle shadow, rounded. Use for all section boxes (not theme-colored). */
+export const SectionBoxShadow: ViewStyle = {
+  backgroundColor: '#FFFFFF',
+  borderRadius: 14,
+  ...Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.08,
+      shadowRadius: 8,
+    },
+    android: {
+      elevation: 4,
+    },
+  }),
 };
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {
