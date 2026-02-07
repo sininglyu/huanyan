@@ -1,0 +1,28 @@
+{
+  "id": "00000000-0000-0000-0000-000000000001",
+  "imagePath": "sample/test.jpg",
+  "thumbnailPath": null,
+  "score": 72,
+  "createdAt": "2025-02-07T09:41:00.000Z",
+  "result": {
+    "overallScore": 72,
+    "score": 72,
+    "skinType": "中性",
+    "skinColor": "自然",
+    "skinTone": "中性",
+    "skinAge": 28,
+    "warnings": [],
+    "indicators": [
+      { "id": "moisture", "label": "水分", "percent": 90 },
+      { "id": "oil", "label": "油分", "percent": 45 },
+      { "id": "pores", "label": "毛孔", "percent": 75 },
+      { "id": "blackhead", "label": "黑头", "percent": 67 },
+      { "id": "acne", "label": "痘痘", "percent": 88 },
+      { "id": "spots", "label": "色斑", "percent": 85 },
+      { "id": "wrinkles", "label": "皱纹", "percent": 72 },
+      { "id": "closed", "label": "闭口", "percent": 92 },
+      { "id": "eye", "label": "眼周", "percent": 65 },
+      { "id": "sensitivity", "label": "敏感", "percent": 85 }
+    ]
+  }
+}

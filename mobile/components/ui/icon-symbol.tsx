@@ -51,6 +51,7 @@ const MAPPING = {
   'nights_stay': 'nights-stay',
   'groups': 'groups',
   'calendar_today': 'calendar-today',
+  'opacity': 'opacity',
 } as IconMapping;
 
 /**

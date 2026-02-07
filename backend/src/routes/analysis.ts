@@ -86,6 +86,31 @@ analysisRouter.get('/history', authMiddleware, async (req: AuthRequest, res: Res
   return res.json({ items, nextCursor, hasMore });
 });
 
+/**
+ * POST /analysis/seed — Create a sample analysis for the authenticated user (no AILab call).
+ * Body: same shape as GET /analysis/:id response: { result, score, imagePath?, createdAt? }.
+ * Use this to test the app with sample-analysis-response.json without calling the real API.
+ */
+analysisRouter.post('/seed', authMiddleware, async (req: AuthRequest, res: Response) => {
+  if (!req.userId) return res.status(401).json(apiError(ERROR_CODES.AUTH.UNAUTHORIZED, 'Unauthorized'));
+  const body = req.body as { result?: unknown; score?: number; imagePath?: string; createdAt?: string };
+  if (!body || typeof body.result !== 'object') {
+    return res.status(400).json(apiError(ERROR_CODES.ANALYSIS.IMAGE_TOO_SMALL, 'Body must include { result, score }'));
+  }
+  const score = typeof body.score === 'number' ? body.score : (body.result as { score?: number })?.score ?? 0;
+  const imagePath = typeof body.imagePath === 'string' && body.imagePath ? body.imagePath : 'sample/seed.jpg';
+  const [row] = await db
+    .insert(skinAnalyses)
+    .values({
+      userId: req.userId,
+      imagePath,
+      resultJson: body.result as Record<string, unknown>,
+      score: Math.round(score),
+    })
+    .returning();
+  return res.status(201).json({ analysisId: row.id });
+});
+
 analysisRouter.get('/:id', authMiddleware, async (req: AuthRequest, res: Response) => {
   if (!req.userId) return res.status(401).json(apiError(ERROR_CODES.AUTH.UNAUTHORIZED, 'Unauthorized'));
   const id = req.params.id;
