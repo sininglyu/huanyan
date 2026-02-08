@@ -19,6 +19,8 @@ export const users = pgTable('users', {
   email: varchar('email', { length: 256 }).unique(), // User's email from Logto
   nickname: varchar('nickname', { length: 64 }).notNull(),
   avatarUrl: text('avatar_url'),
+  gender: varchar('gender', { length: 20 }),
+  age: smallint('age'),
   level: smallint('level').default(1).notNull(),
   followersCount: integer('followers_count').default(0).notNull(),
   totalLikesReceived: integer('total_likes_received').default(0).notNull(),
@@ -56,6 +58,7 @@ export const posts = pgTable('posts', {
   likeCount: integer('like_count').default(0).notNull(),
   commentCount: integer('comment_count').default(0).notNull(),
   favoriteCount: integer('favorite_count').default(0).notNull(),
+  shareCount: integer('share_count').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -99,6 +102,17 @@ export const postFavorites = pgTable(
   },
   (t) => [primaryKey({ columns: [t.postId, t.userId] })]
 );
+
+export const postShares = pgTable('post_shares', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  postId: uuid('post_id')
+    .notNull()
+    .references(() => posts.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
 
 export const tags = pgTable('tags', {
   id: uuid('id').primaryKey().defaultRandom(),

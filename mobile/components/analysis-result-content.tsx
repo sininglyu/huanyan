@@ -17,6 +17,8 @@ import { Colors, SectionBoxShadow } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { getUploadsUrl } from '@/constants/api';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import type { ComponentProps } from 'react';
 
 export interface IndicatorItem {
   id: string;
@@ -89,16 +91,17 @@ export const INDICATOR_COLORS: Record<string, string> = {
   eye: '#7B9ACC',
 };
 
-const INDICATOR_ICON_NAMES: Record<string, 'water_drop' | 'opacity' | 'spa' | 'science' | 'auto_awesome' | 'check' | 'viewfinder' | 'person.fill' | 'close'> = {
-  moisture: 'water_drop',
+/** Material Icons names for indicator cards (direct mapping so icons always render). */
+const INDICATOR_MATERIAL_ICONS: Record<string, ComponentProps<typeof MaterialIcons>['name']> = {
+  moisture: 'water-drop',
   oil: 'opacity',
   pores: 'spa',
   blackhead: 'science',
   acne: 'close',
-  spots: 'auto_awesome',
-  wrinkles: 'person.fill',
+  spots: 'auto-awesome',
+  wrinkles: 'person',
   closed: 'check',
-  eye: 'viewfinder',
+  eye: 'center-focus-strong',
   sensitivity: 'science',
 };
 
@@ -172,11 +175,13 @@ export function AnalysisResultContent({ data, onCtaPress }: AnalysisResultConten
           />
           <View style={styles.circleCenter}>
             <ThemedText style={[styles.scoreNumber, { color: colors.text }]}>{score}</ThemedText>
-            <View style={[styles.scoreBadge, { backgroundColor: colors.primary + '20' }]}>
-              <ThemedText style={[styles.scoreBadgeText, { color: colors.primary }]}>
-                {getScoreLabel(score)}
-              </ThemedText>
-            </View>
+          </View>
+        </View>
+        <View style={styles.scoreBadgeWrap}>
+          <View style={[styles.scoreBadge, { backgroundColor: colors.primary + '20' }]}>
+            <ThemedText style={[styles.scoreBadgeText, { color: colors.primary }]}>
+              {getScoreLabel(score)}
+            </ThemedText>
           </View>
         </View>
         <ThemedText style={[styles.scoreDesc, { color: colors.subtitle }]} numberOfLines={3}>
@@ -212,8 +217,8 @@ export function AnalysisResultContent({ data, onCtaPress }: AnalysisResultConten
                       { backgroundColor: (INDICATOR_COLORS[ind.id] ?? colors.primary) + '25' },
                     ]}
                   >
-                    <IconSymbol
-                      name={INDICATOR_ICON_NAMES[ind.id] ?? 'spa'}
+                    <MaterialIcons
+                      name={INDICATOR_MATERIAL_ICONS[ind.id] ?? 'spa'}
                       size={22}
                       color={INDICATOR_COLORS[ind.id] ?? colors.primary}
                     />
@@ -287,6 +292,7 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'visible',
   },
   circleTrack: {
     position: 'absolute',
@@ -298,13 +304,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'visible',
   },
   scoreNumber: { fontSize: 48, fontWeight: '800' },
+  scoreBadgeWrap: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
   scoreBadge: {
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 999,
-    marginTop: 8,
   },
   scoreBadgeText: { fontSize: 12, fontWeight: '700', letterSpacing: 1 },
   scoreDesc: {

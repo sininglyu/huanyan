@@ -1,8 +1,8 @@
 import { Router, Response } from 'express';
 import { z } from 'zod';
 import { db } from '../db';
-import { posts, comments, postLikes, postFavorites, postTags, tags, users } from '../db/schema';
-import { eq, and, desc, lt } from 'drizzle-orm';
+import { posts, comments, postLikes, postFavorites, postShares, postTags, tags, users } from '../db/schema';
+import { eq, and, desc, lt, sql } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 import { apiError, ERROR_CODES } from '../lib/errors';
 import { authMiddleware, optionalAuth, AuthRequest } from '../middleware/auth';
@@ -21,10 +21,12 @@ communityRouter.get('/posts', optionalAuth, async (req: AuthRequest, res: Respon
   const limit = Math.min(parseInt(String(req.query.limit ?? 20), 10) || 20, 100);
   const cursor = req.query.cursor as string | undefined;
   const section = req.query.section as string | undefined;
+  const q = (req.query.q as string)?.trim().slice(0, 100);
   const sort = (req.query.sort as string) ?? 'recent';
   let orderClause = desc(posts.createdAt);
   if (sort === 'hot') orderClause = desc(posts.likeCount);
-  const conditions = section ? and(eq(posts.section, section), eq(posts.status, 'approved')) : eq(posts.status, 'approved');
+  let conditions = section ? and(eq(posts.section, section), eq(posts.status, 'approved')) : eq(posts.status, 'approved');
+  if (q) conditions = and(conditions, sql`${posts.title} ilike ${'%' + q + '%'}`);
   const cursorCondition = cursor ? and(conditions, lt(posts.createdAt, new Date(cursor))) : conditions;
   const list = await db.select().from(posts).where(cursorCondition).orderBy(orderClause).limit(limit + 1);
   const hasMore = list.length > limit;
@@ -133,4 +135,14 @@ communityRouter.post('/posts/:id/favorites', authMiddleware, async (req: AuthReq
   await db.insert(postFavorites).values({ postId: id, userId: req.userId });
   await db.update(posts).set({ favoriteCount: post.favoriteCount + 1, updatedAt: new Date() }).where(eq(posts.id, id));
   return res.json({ favorited: true });
+});
+
+communityRouter.post('/posts/:id/share', authMiddleware, async (req: AuthRequest, res: Response) => {
+  if (!req.userId) return res.status(401).json(apiError(ERROR_CODES.AUTH.UNAUTHORIZED, 'Unauthorized'));
+  const id = req.params.id;
+  const [post] = await db.select().from(posts).where(eq(posts.id, id)).limit(1);
+  if (!post) return res.status(404).json(apiError(ERROR_CODES.COMMUNITY.NOT_FOUND, 'Post not found'));
+  await db.insert(postShares).values({ postId: id, userId: req.userId });
+  await db.update(posts).set({ shareCount: (post.shareCount ?? 0) + 1, updatedAt: new Date() }).where(eq(posts.id, id));
+  return res.json({ shared: true });
 });

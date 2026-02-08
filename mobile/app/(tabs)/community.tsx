@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,11 +8,14 @@ import {
   ImageBackground,
   Platform,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { apiGet, getAuthToken } from '@/constants/api';
 
 // Design tokens from HTML: primary #C69C6D, primary-dark #8C6B4B, background #fffaf9, accent #F5E6D3
 const COMMUNITY_COLORS = {
@@ -51,11 +54,18 @@ const GROUP_CARDS = [
   },
 ];
 
-const DISCUSSIONS = [
-  { title: 'SPF 50 防晒真的有区别吗？', meta: '245 评论 • 12分钟前', up: '1.2k', icon: 'local_fire_department' as const },
-  { title: '评测：Bloom 推出的新款玻尿酸精华', meta: '89 评论 • 1小时前', up: '842', icon: 'spa' as const },
-  { title: '维C和视黄醇可以混合使用吗？', meta: '156 评论 • 3小时前', up: '612', icon: 'science' as const },
-];
+const DISCUSSION_ICONS = ['local_fire_department', 'spa', 'science', 'wb_sunny', 'spa'] as const;
+
+export interface CommunityPost {
+  id: string;
+  title: string;
+  content?: string | null;
+  likeCount: number;
+  commentCount: number;
+  favoriteCount?: number;
+  createdAt: string;
+  author?: { id: string; nickname?: string; avatarUrl?: string | null };
+}
 
 const cardStyle = {
   backgroundColor: COMMUNITY_COLORS.cardBg,
@@ -73,7 +83,53 @@ const CARD_GAP = 16;
 const PADDING = 16;
 const GROUP_CARD_SIZE = (width - PADDING * 2 - CARD_GAP) / 2;
 
+function formatPostMeta(post: CommunityPost): string {
+  const count = post.commentCount ?? 0;
+  const date = post.createdAt ? new Date(post.createdAt) : null;
+  if (!date) return `${count} 评论`;
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffM = Math.floor(diffMs / 60000);
+  const diffH = Math.floor(diffMs / 3600000);
+  const diffD = Math.floor(diffMs / 86400000);
+  const timeAgo = diffD > 0 ? `${diffD}天前` : diffH > 0 ? `${diffH}小时前` : diffM > 0 ? `${diffM}分钟前` : '刚刚';
+  return `${count} 评论 · ${timeAgo}`;
+}
+
 export default function CommunityScreen() {
+  const router = useRouter();
+  const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+
+  const fetchPosts = useCallback(async (q?: string) => {
+    try {
+      const url = q?.trim() ? `/community/posts?limit=50&q=${encodeURIComponent(q.trim())}` : '/community/posts?limit=50';
+      const res = await apiGet<{ items: CommunityPost[] }>(url);
+      setPosts(res.items ?? []);
+    } catch {
+      setPosts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (getAuthToken()) {
+      setLoading(true);
+      fetchPosts();
+    } else {
+      fetchPosts();
+    }
+  }, [fetchPosts]);
+
+  const onSearchSubmit = () => {
+    setSearchQuery(searchInput.trim());
+    setLoading(true);
+    fetchPosts(searchInput.trim());
+  };
+
   return (
     <ThemedView style={[styles.container, { backgroundColor: COMMUNITY_COLORS.background }]}>
       {/* Sticky header: menu, title (cursive/primary), notifications */}
@@ -95,9 +151,13 @@ export default function CommunityScreen() {
           <IconSymbol name="search" size={20} color={COMMUNITY_COLORS.subtitle} />
           <TextInput
             style={[styles.searchInput, { color: COMMUNITY_COLORS.text }]}
-            placeholder="搜索群组或讨论"
+            placeholder="搜索讨论标题"
             placeholderTextColor={COMMUNITY_COLORS.subtitle}
-            editable={false}
+            value={searchInput}
+            onChangeText={setSearchInput}
+            onSubmitEditing={onSearchSubmit}
+            returnKeyType="search"
+            editable={true}
           />
         </View>
       </View>
@@ -138,30 +198,45 @@ export default function CommunityScreen() {
 
         {/* 热门讨论 */}
         <ThemedText style={[styles.discussSectionTitle, { color: COMMUNITY_COLORS.text }]}>
-          热门讨论
+          {searchQuery.trim() ? '搜索结果' : '热门讨论'}
         </ThemedText>
 
-        <View style={styles.discussList}>
-          {DISCUSSIONS.map((d, i) => (
-            <TouchableOpacity
-              key={i}
-              style={[styles.discussCard, cardStyle]}
-              activeOpacity={0.8}
-            >
-              <View style={[styles.discussIconWrap, { backgroundColor: COMMUNITY_COLORS.primary + '1A' }]}>
-                <IconSymbol name={d.icon} size={22} color={COMMUNITY_COLORS.primary} />
-              </View>
-              <View style={styles.discussBody}>
-                <ThemedText style={[styles.discussTitle, { color: COMMUNITY_COLORS.text }]}>{d.title}</ThemedText>
-                <ThemedText style={[styles.discussMeta, { color: COMMUNITY_COLORS.zinc500 }]}>{d.meta}</ThemedText>
-              </View>
-              <View style={styles.discussUpCol}>
-                <IconSymbol name="arrow_drop_up" size={20} color={COMMUNITY_COLORS.zinc400} />
-                <ThemedText style={[styles.discussUp, { color: COMMUNITY_COLORS.primary }]}>{d.up}</ThemedText>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {loading ? (
+          <View style={styles.discussLoading}>
+            <ActivityIndicator size="small" color={COMMUNITY_COLORS.primary} />
+            <ThemedText style={[styles.loadingText, { color: COMMUNITY_COLORS.subtitle }]}>加载中...</ThemedText>
+          </View>
+        ) : (
+          <View style={styles.discussList}>
+            {posts.map((post, i) => (
+              <TouchableOpacity
+                key={post.id}
+                style={[styles.discussCard, cardStyle]}
+                activeOpacity={0.8}
+                onPress={() => router.push(`/community/post/${post.id}`)}
+              >
+                <View style={[styles.discussIconWrap, { backgroundColor: COMMUNITY_COLORS.primary + '1A' }]}>
+                  <IconSymbol name={DISCUSSION_ICONS[i % DISCUSSION_ICONS.length]} size={22} color={COMMUNITY_COLORS.primary} />
+                </View>
+                <View style={styles.discussBody}>
+                  <ThemedText style={[styles.discussTitle, { color: COMMUNITY_COLORS.text }]} numberOfLines={2}>{post.title}</ThemedText>
+                  <ThemedText style={[styles.discussMeta, { color: COMMUNITY_COLORS.zinc500 }]}>{formatPostMeta(post)}</ThemedText>
+                </View>
+                <View style={styles.discussUpCol}>
+                  <IconSymbol name="arrow_drop_up" size={20} color={COMMUNITY_COLORS.zinc400} />
+                  <ThemedText style={[styles.discussUp, { color: COMMUNITY_COLORS.primary }]}>
+                    {(post.likeCount ?? 0) >= 1000 ? `${((post.likeCount ?? 0) / 1000).toFixed(1)}k` : String(post.likeCount ?? 0)}
+                  </ThemedText>
+                </View>
+              </TouchableOpacity>
+            ))}
+            {posts.length === 0 && !loading && (
+              <ThemedText style={[styles.emptyText, { color: COMMUNITY_COLORS.subtitle }]}>
+                {searchQuery.trim() ? '暂无相关讨论' : '暂无讨论'}
+              </ThemedText>
+            )}
+          </View>
+        )}
 
         {/* 寻找你的焕颜伙伴 */}
         <View style={styles.bannerWrap}>
@@ -279,6 +354,9 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     paddingTop: 16,
   },
+  discussLoading: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 24, justifyContent: 'center' },
+  loadingText: { fontSize: 14 },
+  emptyText: { fontSize: 14, padding: 24, textAlign: 'center' },
   discussList: { paddingHorizontal: 16, gap: 12 },
   discussCard: {
     flexDirection: 'row',

@@ -44,9 +44,28 @@ const cardStyle = {
   }),
 };
 
-const WEEK_BAR_HEIGHTS = [30, 45, 60, 25, 90, 40, 35];
-const WEEK_DAYS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-const TODAY_INDEX = 4;
+/** 周一至周日固定标签，与后端 calendarWeekFromToday 顺序一致 */
+const WEEK_DAY_LABELS = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+
+/** 当前日历周（周一至周日）UTC 日期字符串，与后端 calendarWeekFromToday(0) 一致 */
+function getCalendarWeekDates(): string[] {
+  const now = new Date();
+  const daysSinceMonday = (now.getUTCDay() + 6) % 7;
+  const monday = new Date(now);
+  monday.setUTCDate(now.getUTCDate() - daysSinceMonday);
+  const dates: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday);
+    d.setUTCDate(monday.getUTCDate() + i);
+    dates.push(d.toISOString().slice(0, 10));
+  }
+  return dates;
+}
+
+/** 今天在周一~周日中的索引（0=周一, 6=周日） */
+function getTodayWeekIndex(): number {
+  return (new Date().getUTCDay() + 6) % 7;
+}
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
@@ -56,9 +75,16 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<{
     nickname?: string;
     avatarUrl?: string;
+    gender?: string | null;
+    age?: number | null;
     currentStreak?: number;
   } | null>(null);
   const [skinReports, setSkinReports] = useState<{ averageScore?: number; changePercent?: number } | null>(null);
+  const [weeklySkinReports, setWeeklySkinReports] = useState<{
+    averageScore?: number;
+    changePercent?: number;
+    dailyScores?: Array<{ date: string; score: number | null }>;
+  } | null>(null);
   const [analysisHistory, setAnalysisHistory] = useState<
     Array<{ id: string; score?: number | null; createdAt?: string }>
   >([]);
@@ -68,24 +94,26 @@ export default function ProfileScreen() {
     const token = getAuthToken();
     if (!token) {
       setLoading(false);
+      setProfile(null);
+      setSkinReports(null);
+      setWeeklySkinReports(null);
+      setAnalysisHistory([]);
       return;
     }
     setLoading(true);
     try {
       const historyRes = await apiGet<{
-        items: Array<{ id: string; score?: number | null; createdAt?: string }>;
+        items?: Array<{ id: string; score?: number | null; createdAt?: string }>;
       }>('/analysis/history');
-      setAnalysisHistory(historyRes.items ?? []);
-      try {
-        const [p, reports] = await Promise.all([
-          apiGet<{ nickname: string; avatarUrl?: string; currentStreak: number }>('/user/profile'),
-          apiGet<{ averageScore: number; changePercent: number }>('/user/skin-reports?period=month'),
-        ]);
-        setProfile(p);
-        setSkinReports(reports);
-      } catch {
-        // Optional endpoints may not exist
-      }
+      setAnalysisHistory(Array.isArray(historyRes?.items) ? historyRes.items : []);
+      const [p, reports, weekReports] = await Promise.all([
+        apiGet<{ nickname?: string; avatarUrl?: string; gender?: string | null; age?: number | null; currentStreak?: number }>('/user/profile').catch(() => null),
+        apiGet<{ averageScore?: number; changePercent?: number }>('/user/skin-reports?period=month').catch(() => null),
+        apiGet<{ averageScore?: number; changePercent?: number; dailyScores?: Array<{ date: string; score: number | null }> }>('/user/skin-reports?period=week').catch(() => null),
+      ]);
+      if (p != null) setProfile(p);
+      if (reports != null) setSkinReports(reports);
+      if (weekReports != null) setWeeklySkinReports(weekReports);
     } catch (error) {
       if (error instanceof Error && error.message.includes('401')) {
         await refreshToken();
@@ -121,10 +149,35 @@ export default function ProfileScreen() {
   }
 
   const displayName = profile?.nickname ?? 'Sarah Jenkins';
-  const streak = profile?.currentStreak ?? 14;
-  const scanCount = analysisHistory.length || 42;
-  const score = skinReports?.averageScore ?? analysisHistory[0]?.score ?? 78;
-  const changePercent = skinReports?.changePercent ?? 5;
+  const streak = profile?.currentStreak ?? 0;
+  const scanCount = analysisHistory?.length ?? 0;
+  const score = weeklySkinReports?.averageScore ?? skinReports?.averageScore ?? analysisHistory?.[0]?.score ?? 0;
+  const changePercent = weeklySkinReports?.changePercent ?? skinReports?.changePercent ?? 0;
+  const rawWeek = weeklySkinReports as
+    | { dailyScores?: Array<{ date: string; score: number | null }>; daily_scores?: Array<{ date: string; score: number | null }> }
+    | null
+    | undefined;
+  const dailyList = Array.isArray(rawWeek?.dailyScores) ? rawWeek.dailyScores : Array.isArray(rawWeek?.daily_scores) ? rawWeek.daily_scores : [];
+  const dateToScore = new Map<string, number>();
+  for (const d of dailyList) {
+    const dateStr = typeof d?.date === 'string' ? d.date : '';
+    if (!dateStr) continue;
+    const raw = d?.score;
+    const num = raw != null && raw !== '' ? (typeof raw === 'number' ? raw : Number(raw)) : null;
+    if (num != null && !Number.isNaN(num) && num >= 0 && num <= 100) dateToScore.set(dateStr, num);
+  }
+  const CHART_HEIGHT_PX = 100;
+  const weekDates = getCalendarWeekDates();
+  const todayIndex = getTodayWeekIndex();
+  const barData = weekDates.map((dateStr, i) => {
+    const score = dateToScore.get(dateStr);
+    const percent = score != null ? Math.min(100, Math.max(0, Number(score))) : 0;
+    return {
+      label: WEEK_DAY_LABELS[i],
+      percent,
+      isToday: i === todayIndex,
+    };
+  });
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: PROFILE_COLORS.background }]}>
@@ -156,7 +209,7 @@ export default function ProfileScreen() {
             <View style={styles.profileInfo}>
               <ThemedText style={[styles.nickname, { color: PROFILE_COLORS.text }]}>{displayName}</ThemedText>
               <ThemedText style={[styles.profileDetail, { color: PROFILE_COLORS.subtitle }]}>
-                油性 - 混合性 | 28 岁
+                {[profile?.gender, profile?.age != null ? `${profile.age} 岁` : null].filter(Boolean).join(' · ') || '未设置'}
               </ThemedText>
               <View style={[styles.badge, { backgroundColor: PROFILE_COLORS.primary + '1A' }]}>
                 <IconSymbol name="verified" size={12} color={PROFILE_COLORS.primary} />
@@ -167,6 +220,7 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={[styles.editBtn, { backgroundColor: PROFILE_COLORS.primary }]}
             activeOpacity={0.9}
+            onPress={() => router.push('/profile/edit')}
           >
             <ThemedText style={styles.editBtnText}>编辑资料</ThemedText>
           </TouchableOpacity>
@@ -204,31 +258,44 @@ export default function ProfileScreen() {
           <View style={styles.journeyScoreBlock}>
             <ThemedText style={[styles.journeyLabel, { color: PROFILE_COLORS.subtitle }]}>周皮肤评分</ThemedText>
             <View style={styles.journeyScoreRow}>
-              <ThemedText style={[styles.journeyScore, { color: PROFILE_COLORS.text }]}>{score}/100</ThemedText>
-              <ThemedText style={[styles.journeyChange, { color: PROFILE_COLORS.green }]}>
-                较上周 +{changePercent}%
+              <ThemedText style={[styles.journeyScore, { color: PROFILE_COLORS.text }]} numberOfLines={1}>
+                {score}/100
+              </ThemedText>
+              <ThemedText
+                style={[
+                  styles.journeyChange,
+                  { color: changePercent >= 0 ? PROFILE_COLORS.green : '#c62828' },
+                ]}
+                numberOfLines={1}
+              >
+                较上周 {changePercent >= 0 ? '+' : ''}{changePercent}%
               </ThemedText>
             </View>
           </View>
-          <View style={styles.barChartRow}>
-            {WEEK_DAYS.map((day, i) => (
-              <View key={day} style={styles.barCol}>
-                <View
-                  style={[
-                    styles.bar,
-                    {
-                      height: `${WEEK_BAR_HEIGHTS[i]}%`,
-                      backgroundColor: i === TODAY_INDEX ? PROFILE_COLORS.primary : PROFILE_COLORS.primary + '33',
-                    },
-                  ]}
-                />
+          <View style={[styles.barChartRow, { height: CHART_HEIGHT_PX + 28 }]}>
+            {barData.map((item, i) => (
+              <View key={`${item.label}-${i}`} style={styles.barCol}>
+                <View style={[styles.barTray, { height: CHART_HEIGHT_PX }]}>
+                  {item.percent > 0 && (
+                    <View
+                      style={[
+                        styles.bar,
+                        {
+                          height: Math.max(4, (item.percent / 100) * CHART_HEIGHT_PX),
+                          backgroundColor: item.isToday ? PROFILE_COLORS.primary : PROFILE_COLORS.primary + '33',
+                        },
+                      ]}
+                    />
+                  )}
+                </View>
                 <ThemedText
                   style={[
                     styles.barLabel,
-                    { color: i === TODAY_INDEX ? PROFILE_COLORS.primary : PROFILE_COLORS.subtitle },
+                    { color: item.isToday ? '#E6A23C' : PROFILE_COLORS.subtitle },
                   ]}
+                  numberOfLines={1}
                 >
-                  {day}
+                  {item.label}
                 </ThemedText>
               </View>
             ))}
@@ -253,24 +320,32 @@ export default function ProfileScreen() {
           <IconSymbol name="chevron.right" size={20} color={PROFILE_COLORS.subtitle} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.prefRow, cardStyle]} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={[styles.prefRow, cardStyle]}
+          onPress={() => router.push('/profile/activity')}
+          activeOpacity={0.8}
+        >
           <View style={[styles.prefIconWrap, { backgroundColor: PROFILE_COLORS.primary + '1A' }]}>
-            <IconSymbol name="shopping_bag" size={22} color={PROFILE_COLORS.primary} />
+            <IconSymbol name="bubble.left.and.bubble.right.fill" size={22} color={PROFILE_COLORS.primary} />
           </View>
           <View style={styles.prefBody}>
-            <ThemedText style={[styles.prefTitle, { color: PROFILE_COLORS.text }]}>订单记录</ThemedText>
-            <ThemedText style={[styles.prefSub, { color: PROFILE_COLORS.subtitle }]}>查看订单物流</ThemedText>
+            <ThemedText style={[styles.prefTitle, { color: PROFILE_COLORS.text }]}>我的活动</ThemedText>
+            <ThemedText style={[styles.prefSub, { color: PROFILE_COLORS.subtitle }]}>我参与评论的讨论</ThemedText>
           </View>
           <IconSymbol name="chevron.right" size={20} color={PROFILE_COLORS.subtitle} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.prefRow, cardStyle]} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={[styles.prefRow, cardStyle]}
+          onPress={() => router.push('/profile/favorites')}
+          activeOpacity={0.8}
+        >
           <View style={[styles.prefIconWrap, { backgroundColor: PROFILE_COLORS.primary + '1A' }]}>
             <IconSymbol name="bookmark" size={22} color={PROFILE_COLORS.primary} />
           </View>
           <View style={styles.prefBody}>
             <ThemedText style={[styles.prefTitle, { color: PROFILE_COLORS.text }]}>收藏项目</ThemedText>
-            <ThemedText style={[styles.prefSub, { color: PROFILE_COLORS.subtitle }]}>您收藏的产品和贴士</ThemedText>
+            <ThemedText style={[styles.prefSub, { color: PROFILE_COLORS.subtitle }]}>我收藏的讨论</ThemedText>
           </View>
           <IconSymbol name="chevron.right" size={20} color={PROFILE_COLORS.subtitle} />
         </TouchableOpacity>
@@ -384,23 +459,34 @@ const styles = StyleSheet.create({
     padding: 24,
     marginBottom: 24,
   },
-  journeyScoreBlock: { marginBottom: 24 },
+  journeyScoreBlock: { marginBottom: 24, minHeight: 56 },
   journeyLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
-  journeyScoreRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 4 },
-  journeyScore: { fontSize: 30, fontWeight: '700' },
-  journeyChange: { fontSize: 12, fontWeight: '700' },
+  journeyScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'nowrap' },
+  journeyScore: { fontSize: 28, fontWeight: '700', minWidth: 72 },
+  journeyChange: { fontSize: 12, fontWeight: '700', flexShrink: 0 },
   barChartRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    height: 128,
     gap: 4,
     paddingHorizontal: 4,
+    overflow: 'hidden',
   },
-  barCol: { flex: 1, alignItems: 'center', gap: 8 },
-  bar: {
+  barCol: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 6,
+    minWidth: 24,
+  },
+  barTray: {
     width: '100%',
-    minHeight: 8,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
+  bar: {
+    width: '80%',
+    minWidth: 8,
     borderRadius: 4,
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.06, shadowRadius: 2 },

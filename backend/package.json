@@ -11,6 +11,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx src/scripts/seed-community.ts",
     "test": "tsx run src/lib/__tests__/skin-report-transformer.test.ts"
   },
   "dependencies": {
