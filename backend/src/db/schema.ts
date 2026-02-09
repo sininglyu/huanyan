@@ -9,7 +9,9 @@ import {
   date,
   jsonb,
   primaryKey,
+  foreignKey,
 } from 'drizzle-orm/pg-core';
+import type { PrimaryKeyBuilder } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -64,19 +66,28 @@ export const posts = pgTable('posts', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const comments = pgTable('comments', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  postId: uuid('post_id')
-    .notNull()
-    .references(() => posts.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  parentId: uuid('parent_id').references(() => comments.id, { onDelete: 'cascade' }),
-  content: text('content').notNull(),
-  imageUrl: text('image_url'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-});
+export const comments = pgTable(
+  'comments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    postId: uuid('post_id')
+      .notNull()
+      .references(() => posts.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    parentId: uuid('parent_id'),
+    content: text('content').notNull(),
+    imageUrl: text('image_url'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (commentsTable) => [
+    foreignKey({
+      columns: [commentsTable.parentId],
+      foreignColumns: [commentsTable.id],
+    }).onDelete('cascade'),
+  ]
+);
 
 export const postLikes = pgTable(
   'post_likes',
@@ -89,7 +100,7 @@ export const postLikes = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [primaryKey({ columns: [t.postId, t.userId] })]
+  (t): PrimaryKeyBuilder[] => [primaryKey({ columns: [t.postId, t.userId] })]
 );
 
 export const postFavorites = pgTable(
@@ -103,7 +114,7 @@ export const postFavorites = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [primaryKey({ columns: [t.postId, t.userId] })]
+  (t): PrimaryKeyBuilder[] => [primaryKey({ columns: [t.postId, t.userId] })]
 );
 
 export const postShares = pgTable('post_shares', {
@@ -133,7 +144,7 @@ export const postTags = pgTable(
       .notNull()
       .references(() => tags.id, { onDelete: 'cascade' }),
   },
-  (t) => [primaryKey({ columns: [t.postId, t.tagId] })]
+  (t): PrimaryKeyBuilder[] => [primaryKey({ columns: [t.postId, t.tagId] })]
 );
 
 export const checkins = pgTable('checkins', {

@@ -200,7 +200,8 @@ communityRouter.post('/posts/:id/comments', authMiddleware, async (req: AuthRequ
   const imageUrl = (req.body?.imageUrl as string) || null;
   const [post] = await db.select().from(posts).where(eq(posts.id, id)).limit(1);
   if (!post) return res.status(404).json(apiError(ERROR_CODES.COMMUNITY.NOT_FOUND, 'Post not found'));
-  const [comment] = await db.insert(comments).values({ postId: id, userId: req.userId, content, parentId: parentId || undefined, imageUrl: imageUrl || undefined }).returning();
+  const returningResult = await db.insert(comments).values({ postId: id, userId: req.userId, content, parentId: parentId || undefined, imageUrl: imageUrl || undefined }).returning();
+  const comment = Array.isArray(returningResult) ? returningResult[0] : undefined;
   if (!comment) return res.status(500).json(apiError(ERROR_CODES.COMMUNITY.NOT_FOUND, 'Failed to create comment'));
   await db.update(posts).set({ commentCount: post.commentCount + 1, updatedAt: new Date() }).where(eq(posts.id, id));
   const [author] = await db.select({ id: users.id, nickname: users.nickname, avatarUrl: users.avatarUrl }).from(users).where(eq(users.id, req.userId)).limit(1);
