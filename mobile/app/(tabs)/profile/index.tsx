@@ -181,7 +181,6 @@ export default function ProfileScreen() {
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: PROFILE_COLORS.background }]}>
-      {/* Sticky header: back, title, notifications */}
       <View style={[styles.header, { backgroundColor: PROFILE_COLORS.background + 'CC', borderBottomColor: PROFILE_COLORS.border }]}>
         <TouchableOpacity style={styles.headerBtn} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <IconSymbol name="chevron.left" size={24} color={PROFILE_COLORS.text} />
@@ -196,7 +195,6 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Profile card */}
         <View style={[styles.profileCard, cardStyle]}>
           <View style={styles.profileTop}>
             <View style={[styles.avatarWrap, { borderColor: PROFILE_COLORS.primary + '33' }]}>
@@ -220,13 +218,12 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={[styles.editBtn, { backgroundColor: PROFILE_COLORS.primary }]}
             activeOpacity={0.9}
-            onPress={() => router.push('/profile/edit')}
+            onPress={() => router.push('/(tabs)/profile/edit')}
           >
             <ThemedText style={styles.editBtnText}>编辑资料</ThemedText>
           </TouchableOpacity>
         </View>
 
-        {/* Stats row: 连续打卡, 扫描次数, 进度 */}
         <View style={styles.statsRow}>
           <View style={[styles.statCard, cardStyle]}>
             <IconSymbol name="local_fire_department" size={22} color={PROFILE_COLORS.primary} />
@@ -245,15 +242,13 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* 焕颜之旅 section header */}
         <View style={styles.journeySectionHeader}>
           <ThemedText style={[styles.sectionTitle, { color: PROFILE_COLORS.text }]}>焕颜之旅</ThemedText>
-          <TouchableOpacity onPress={() => router.push('/profile/journey')}>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/profile/journey')}>
             <ThemedText style={[styles.viewDetailLink, { color: PROFILE_COLORS.primary }]}>查看详情</ThemedText>
           </TouchableOpacity>
         </View>
 
-        {/* Journey card: 周皮肤评分 + bar chart */}
         <View style={[styles.journeyCard, cardStyle]}>
           <View style={styles.journeyScoreBlock}>
             <ThemedText style={[styles.journeyLabel, { color: PROFILE_COLORS.subtitle }]}>周皮肤评分</ThemedText>
@@ -302,12 +297,11 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* 偏好设置 */}
         <ThemedText style={[styles.prefsTitle, { color: PROFILE_COLORS.text }]}>偏好设置</ThemedText>
 
         <TouchableOpacity
           style={[styles.prefRow, cardStyle]}
-          onPress={() => router.push('/profile/plan')}
+          onPress={() => router.push('/(tabs)/profile/plan')}
           activeOpacity={0.8}
         >
           <View style={[styles.prefIconWrap, { backgroundColor: PROFILE_COLORS.primary + '1A' }]}>
@@ -322,7 +316,7 @@ export default function ProfileScreen() {
 
         <TouchableOpacity
           style={[styles.prefRow, cardStyle]}
-          onPress={() => router.push('/profile/activity')}
+          onPress={() => router.push('/(tabs)/profile/activity')}
           activeOpacity={0.8}
         >
           <View style={[styles.prefIconWrap, { backgroundColor: PROFILE_COLORS.primary + '1A' }]}>
@@ -337,7 +331,7 @@ export default function ProfileScreen() {
 
         <TouchableOpacity
           style={[styles.prefRow, cardStyle]}
-          onPress={() => router.push('/profile/favorites')}
+          onPress={() => router.push('/(tabs)/profile/favorites')}
           activeOpacity={0.8}
         >
           <View style={[styles.prefIconWrap, { backgroundColor: PROFILE_COLORS.primary + '1A' }]}>
@@ -352,7 +346,7 @@ export default function ProfileScreen() {
 
         <TouchableOpacity
           style={[styles.prefRow, cardStyle]}
-          onPress={() => router.push('/profile/settings')}
+          onPress={() => router.push('/(tabs)/profile/settings')}
           activeOpacity={0.8}
         >
           <View style={[styles.prefIconWrap, { backgroundColor: PROFILE_COLORS.primary + '1A' }]}>

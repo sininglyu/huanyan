@@ -26,7 +26,7 @@ export default function RoutineTabScreen() {
         </ThemedText>
         <TouchableOpacity
           style={[styles.button, { backgroundColor: colors.primary }]}
-          onPress={() => router.push('/profile/plan')}
+          onPress={() => router.push('/(tabs)/profile/plan')}
           activeOpacity={0.85}
         >
           <ThemedText style={styles.buttonText}>我的方案</ThemedText>

@@ -10,7 +10,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, usePathname } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -125,10 +125,23 @@ export default function CommunityScreen() {
   }, [fetchPosts]);
 
   const onSearchSubmit = () => {
-    setSearchQuery(searchInput.trim());
+    const q = searchInput.trim();
+    if (q) {
+      router.push(`/community/search?q=${encodeURIComponent(q)}`);
+      return;
+    }
+    setSearchQuery('');
     setLoading(true);
-    fetchPosts(searchInput.trim());
+    fetchPosts();
   };
+
+  const pathname = usePathname();
+  // #region agent log
+  const onNewPost = () => {
+    fetch('http://127.0.0.1:7242/ingest/0c57f91d-9c84-4278-9b98-960036cb98ae',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'(tabs)/community/index.tsx:onNewPost',message:'FAB pressed',data:{pathname},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
+    router.push('/(tabs)/community/create');
+  };
+  // #endregion
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: COMMUNITY_COLORS.background }]}>
@@ -175,6 +188,7 @@ export default function CommunityScreen() {
               key={g.label}
               style={[styles.groupCard, { width: GROUP_CARD_SIZE, height: GROUP_CARD_SIZE }]}
               activeOpacity={0.9}
+              onPress={() => router.push(`/community/section/${encodeURIComponent(g.label)}`)}
             >
               <ImageBackground
                 source={{ uri: g.imageUri }}
@@ -272,6 +286,18 @@ export default function CommunityScreen() {
           </LinearGradient>
         </View>
       </ScrollView>
+
+      {/* FAB: new post */}
+      <TouchableOpacity style={styles.fab} activeOpacity={0.9} onPress={onNewPost}>
+        <LinearGradient
+          colors={[COMMUNITY_COLORS.primary, COMMUNITY_COLORS.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.fabGradient}
+        >
+          <IconSymbol name="add" size={28} color="#fff" />
+        </LinearGradient>
+      </TouchableOpacity>
     </ThemedView>
   );
 }
@@ -419,4 +445,26 @@ const styles = StyleSheet.create({
     }),
   },
   bannerBtnText: { fontSize: 14, fontWeight: '700' },
+  fab: {
+    position: 'absolute',
+    bottom: 88,
+    right: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    zIndex: 1000,
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.2)',
+    ...Platform.select({
+      ios: { shadowColor: COMMUNITY_COLORS.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 8 },
+      android: { elevation: 12 },
+    }),
+  },
+  fabGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

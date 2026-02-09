@@ -96,7 +96,7 @@ export default function JourneyScreen() {
             <TouchableOpacity
               key={item.id}
               style={[styles.card, { backgroundColor: colors.primaryLight + '15' }]}
-              onPress={() => router.push(`/profile/analysis/${item.id}`)}
+              onPress={() => router.push(`/(tabs)/profile/analysis/${item.id}`)}
               activeOpacity={0.8}
             >
               <View style={[styles.thumb, { backgroundColor: colors.primaryLight + '50' }]} />

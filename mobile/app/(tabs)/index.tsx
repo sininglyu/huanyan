@@ -153,7 +153,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <ThemedText style={[styles.sectionTitle, { color: HOME_COLORS.text }]}>晨间方案</ThemedText>
-            <TouchableOpacity onPress={() => router.push('/profile/plan')}>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/profile/plan')}>
               <ThemedText style={[styles.viewAll, { color: HOME_COLORS.primary }]}>查看全部</ThemedText>
             </TouchableOpacity>
           </View>

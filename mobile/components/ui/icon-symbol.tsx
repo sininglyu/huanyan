@@ -52,6 +52,17 @@ const MAPPING = {
   'groups': 'groups',
   'calendar_today': 'calendar-today',
   'opacity': 'opacity',
+  'add': 'add',
+  'arrow_back_ios_new': 'arrow-back',
+  'favorite': 'favorite',
+  'visibility': 'visibility',
+  'thumb_up': 'thumb-up',
+  'chat_bubble': 'chat-bubble',
+  'add_photo_alternate': 'add-photo-alternate',
+  'image': 'image',
+  'location_on': 'location-on',
+  'alternate_email': 'alternate-email',
+  'sell': 'sell',
 } as IconMapping;
 
 /**

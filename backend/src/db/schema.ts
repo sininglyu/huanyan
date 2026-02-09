@@ -59,6 +59,7 @@ export const posts = pgTable('posts', {
   commentCount: integer('comment_count').default(0).notNull(),
   favoriteCount: integer('favorite_count').default(0).notNull(),
   shareCount: integer('share_count').default(0).notNull(),
+  viewCount: integer('view_count').default(0).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -71,7 +72,9 @@ export const comments = pgTable('comments', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
+  parentId: uuid('parent_id').references(() => comments.id, { onDelete: 'cascade' }),
   content: text('content').notNull(),
+  imageUrl: text('image_url'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
