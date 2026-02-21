@@ -64,10 +64,10 @@ export default function HomeScreen() {
         </View>
         <View style={styles.headerIcons}>
           <TouchableOpacity style={[styles.headerIconBtn, cardStyle]}>
-            <IconSymbol name="search" size={22} color={HOME_COLORS.text} />
+            <IconSymbol name="magnifyingglass" size={22} color={HOME_COLORS.text} />
           </TouchableOpacity>
           <TouchableOpacity style={[styles.headerIconBtn, cardStyle, styles.notifBtn]}>
-            <IconSymbol name="notifications" size={22} color={HOME_COLORS.text} />
+            <IconSymbol name="bell.fill" size={22} color={HOME_COLORS.text} />
             <View style={styles.notifBadge} />
           </TouchableOpacity>
         </View>
@@ -104,7 +104,7 @@ export default function HomeScreen() {
           <View style={[styles.metricCard, cardStyle]}>
             <View style={styles.metricCardInner}>
               <View style={styles.metricCardHeader}>
-                <IconSymbol name="water_drop" size={20} color={HOME_COLORS.primary} />
+                <IconSymbol name="drop.fill" size={20} color={HOME_COLORS.primary} />
                 <ThemedText style={[styles.metricLabel, { color: HOME_COLORS.subtitle }]}>水润度</ThemedText>
               </View>
               <ThemedText style={[styles.metricValue, { color: HOME_COLORS.text }]}>良好</ThemedText>
@@ -127,7 +127,7 @@ export default function HomeScreen() {
           <View style={[styles.metricCard, cardStyle]}>
             <View style={styles.metricCardInner}>
               <View style={styles.metricCardHeader}>
-                <IconSymbol name="wb_sunny" size={20} color={HOME_COLORS.primary} />
+                <IconSymbol name="sun.max.fill" size={20} color={HOME_COLORS.primary} />
                 <ThemedText style={[styles.metricLabel, { color: HOME_COLORS.subtitle }]}>紫外线指数</ThemedText>
               </View>
               <ThemedText style={[styles.metricValue, { color: HOME_COLORS.text }]}>低</ThemedText>
@@ -178,7 +178,7 @@ export default function HomeScreen() {
               <ThemedText style={[styles.routineNext, { color: HOME_COLORS.subtitle }]}>下一步：涂抹防晒霜</ThemedText>
             </View>
             <TouchableOpacity style={[styles.playBtn, { backgroundColor: HOME_COLORS.primary }]} activeOpacity={0.9}>
-              <IconSymbol name="play_arrow" size={24} color="#fff" />
+              <IconSymbol name="play.fill" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>

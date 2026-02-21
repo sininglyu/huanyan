@@ -90,7 +90,7 @@ export default function ProfileScreen() {
   >([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (silent = false) => {
     const token = getAuthToken();
     if (!token) {
       setLoading(false);
@@ -100,7 +100,7 @@ export default function ProfileScreen() {
       setAnalysisHistory([]);
       return;
     }
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const historyRes = await apiGet<{
         items?: Array<{ id: string; score?: number | null; createdAt?: string }>;
@@ -135,7 +135,7 @@ export default function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       if (isAuthenticated && getAuthToken()) {
-        fetchData();
+        fetchData(true);
       }
     }, [isAuthenticated, fetchData])
   );
@@ -148,7 +148,7 @@ export default function ProfileScreen() {
     );
   }
 
-  const displayName = profile?.nickname ?? 'Sarah Jenkins';
+  const displayName = profile?.nickname ?? '焕颜用户';
   const streak = profile?.currentStreak ?? 0;
   const scanCount = analysisHistory?.length ?? 0;
   const score = weeklySkinReports?.averageScore ?? skinReports?.averageScore ?? analysisHistory?.[0]?.score ?? 0;
@@ -163,7 +163,7 @@ export default function ProfileScreen() {
     const dateStr = typeof d?.date === 'string' ? d.date : '';
     if (!dateStr) continue;
     const raw = d?.score;
-    const num = raw != null && raw !== '' ? (typeof raw === 'number' ? raw : Number(raw)) : null;
+    const num = raw != null ? (typeof raw === 'number' ? raw : Number(raw)) : null;
     if (num != null && !Number.isNaN(num) && num >= 0 && num <= 100) dateToScore.set(dateStr, num);
   }
   const CHART_HEIGHT_PX = 100;
@@ -187,7 +187,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
         <ThemedText style={[styles.headerTitle, { color: PROFILE_COLORS.text }]}>个人中心</ThemedText>
         <TouchableOpacity style={styles.headerBtn}>
-          <IconSymbol name="notifications" size={22} color={PROFILE_COLORS.text} />
+          <IconSymbol name="bell.fill" size={22} color={PROFILE_COLORS.text} />
         </TouchableOpacity>
       </View>
       <ScrollView
@@ -210,7 +210,7 @@ export default function ProfileScreen() {
                 {[profile?.gender, profile?.age != null ? `${profile.age} 岁` : null].filter(Boolean).join(' · ') || '未设置'}
               </ThemedText>
               <View style={[styles.badge, { backgroundColor: PROFILE_COLORS.primary + '1A' }]}>
-                <IconSymbol name="verified" size={12} color={PROFILE_COLORS.primary} />
+                <IconSymbol name="checkmark.seal.fill" size={12} color={PROFILE_COLORS.primary} />
                 <ThemedText style={[styles.badgeText, { color: PROFILE_COLORS.primary }]}>金牌会员</ThemedText>
               </View>
             </View>
@@ -218,7 +218,7 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={[styles.editBtn, { backgroundColor: PROFILE_COLORS.primary }]}
             activeOpacity={0.9}
-            onPress={() => router.push('/(tabs)/profile/edit')}
+            onPress={() => router.push('/profile/edit')}
           >
             <ThemedText style={styles.editBtnText}>编辑资料</ThemedText>
           </TouchableOpacity>
@@ -226,17 +226,17 @@ export default function ProfileScreen() {
 
         <View style={styles.statsRow}>
           <View style={[styles.statCard, cardStyle]}>
-            <IconSymbol name="local_fire_department" size={22} color={PROFILE_COLORS.primary} />
+            <IconSymbol name="flame.fill" size={22} color={PROFILE_COLORS.primary} />
             <ThemedText style={[styles.statLabel, { color: PROFILE_COLORS.subtitle }]}>连续打卡</ThemedText>
             <ThemedText style={[styles.statValue, { color: PROFILE_COLORS.text }]}>{streak} 天</ThemedText>
           </View>
           <View style={[styles.statCard, cardStyle]}>
-            <IconSymbol name="camera_front" size={22} color={PROFILE_COLORS.primary} />
+            <IconSymbol name="camera.fill" size={22} color={PROFILE_COLORS.primary} />
             <ThemedText style={[styles.statLabel, { color: PROFILE_COLORS.subtitle }]}>扫描次数</ThemedText>
             <ThemedText style={[styles.statValue, { color: PROFILE_COLORS.text }]}>{scanCount}</ThemedText>
           </View>
           <View style={[styles.statCard, cardStyle]}>
-            <IconSymbol name="monitoring" size={22} color={PROFILE_COLORS.primary} />
+            <IconSymbol name="chart.line.uptrend.xyaxis" size={22} color={PROFILE_COLORS.primary} />
             <ThemedText style={[styles.statLabel, { color: PROFILE_COLORS.subtitle }]}>进度</ThemedText>
             <ThemedText style={[styles.statValue, { color: PROFILE_COLORS.text }]}>85%</ThemedText>
           </View>
@@ -305,7 +305,7 @@ export default function ProfileScreen() {
           activeOpacity={0.8}
         >
           <View style={[styles.prefIconWrap, { backgroundColor: PROFILE_COLORS.primary + '1A' }]}>
-            <IconSymbol name="auto_awesome" size={22} color={PROFILE_COLORS.primary} />
+            <IconSymbol name="sparkles" size={22} color={PROFILE_COLORS.primary} />
           </View>
           <View style={styles.prefBody}>
             <ThemedText style={[styles.prefTitle, { color: PROFILE_COLORS.text }]}>我的方案</ThemedText>
@@ -350,7 +350,7 @@ export default function ProfileScreen() {
           activeOpacity={0.8}
         >
           <View style={[styles.prefIconWrap, { backgroundColor: PROFILE_COLORS.primary + '1A' }]}>
-            <IconSymbol name="settings" size={22} color={PROFILE_COLORS.primary} />
+            <IconSymbol name="gearshape.fill" size={22} color={PROFILE_COLORS.primary} />
           </View>
           <View style={styles.prefBody}>
             <ThemedText style={[styles.prefTitle, { color: PROFILE_COLORS.text }]}>设置</ThemedText>

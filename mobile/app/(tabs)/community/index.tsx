@@ -10,7 +10,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter, usePathname } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -54,7 +54,7 @@ const GROUP_CARDS = [
   },
 ];
 
-const DISCUSSION_ICONS = ['local_fire_department', 'spa', 'science', 'wb_sunny', 'spa'] as const;
+const DISCUSSION_ICONS = ['flame.fill', 'spa', 'science', 'wb_sunny', 'spa'] as const;
 
 export interface CommunityPost {
   id: string;
@@ -135,13 +135,9 @@ export default function CommunityScreen() {
     fetchPosts();
   };
 
-  const pathname = usePathname();
-  // #region agent log
   const onNewPost = () => {
-    fetch('http://127.0.0.1:7242/ingest/0c57f91d-9c84-4278-9b98-960036cb98ae',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'(tabs)/community/index.tsx:onNewPost',message:'FAB pressed',data:{pathname},timestamp:Date.now(),hypothesisId:'A'})}).catch(()=>{});
     router.push('/(tabs)/community/create');
   };
-  // #endregion
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: COMMUNITY_COLORS.background }]}>
@@ -154,7 +150,7 @@ export default function CommunityScreen() {
           焕颜社区中心
         </ThemedText>
         <TouchableOpacity style={styles.headerBtn}>
-          <IconSymbol name="notifications" size={24} color={COMMUNITY_COLORS.primary} />
+          <IconSymbol name="bell.fill" size={24} color={COMMUNITY_COLORS.primary} />
         </TouchableOpacity>
       </View>
 

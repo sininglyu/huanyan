@@ -44,11 +44,6 @@ export interface CreatePostScreenProps {
 
 export default function CreatePostScreen({ onClose, onPublishSuccess }: CreatePostScreenProps = {}) {
   const router = useRouter();
-  // #region agent log
-  React.useEffect(() => {
-    fetch('http://127.0.0.1:7242/ingest/0c57f91d-9c84-4278-9b98-960036cb98ae',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'(tabs)/community/create.tsx',message:'CreatePostScreen mounted',data:{},timestamp:Date.now(),hypothesisId:'D'})}).catch(()=>{});
-  }, []);
-  // #endregion
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([...PRESET_TAGS]);

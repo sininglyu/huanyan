@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -30,11 +29,14 @@ interface PostItem {
 
 const FAV_COLORS = {
   primary: '#cfa577',
+  background: '#f8f7f6',
   text: '#161412',
   subtitle: '#81766a',
   cardBg: '#FFFFFF',
   border: '#f4f2f1',
 };
+
+const CONTENT_TOP_PADDING = Platform.OS === 'ios' ? 56 : 16;
 
 export default function FavoritesScreen() {
   const router = useRouter();
@@ -66,7 +68,11 @@ export default function FavoritesScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (getAuthToken()) fetchFavorites();
+      if (getAuthToken()) {
+        // Refetch when returning from post detail so newly favorited posts appear
+        const t = setTimeout(() => fetchFavorites(), 50);
+        return () => clearTimeout(t);
+      }
     }, [fetchFavorites])
   );
 
@@ -77,17 +83,17 @@ export default function FavoritesScreen() {
 
   if (loading) {
     return (
-      <ThemedView style={[styles.container, styles.centered]}>
+      <View style={[styles.container, styles.centered, { backgroundColor: FAV_COLORS.background }]}>
         <ActivityIndicator size="large" color={FAV_COLORS.primary} />
-      </ThemedView>
+      </View>
     );
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={[styles.container, { backgroundColor: FAV_COLORS.background }]}>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: CONTENT_TOP_PADDING }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={FAV_COLORS.primary} />
         }
@@ -124,7 +130,7 @@ export default function FavoritesScreen() {
           ))
         )}
       </ScrollView>
-    </ThemedView>
+    </View>
   );
 }
 

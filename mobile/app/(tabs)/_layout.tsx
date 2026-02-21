@@ -23,6 +23,7 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: TAB_INACTIVE,
+        detachInactiveScreens: false,
         tabBarStyle: {
           backgroundColor: TAB_BAR_BG,
           borderTopColor: TAB_BAR_BORDER,
@@ -97,7 +98,15 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: '个人',
-          tabBarButton: HapticTab,
+          tabBarButton: (props) => (
+            <HapticTab
+              {...props}
+              onPress={() => {
+                router.replace('/(tabs)/profile');
+                props.onPress?.();
+              }}
+            />
+          ),
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.fill" color={color} />,
         }}
       />

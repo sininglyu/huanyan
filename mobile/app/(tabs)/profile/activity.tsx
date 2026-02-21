@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -30,11 +29,14 @@ interface PostItem {
 
 const ACT_COLORS = {
   primary: '#cfa577',
+  background: '#f8f7f6',
   text: '#161412',
   subtitle: '#81766a',
   cardBg: '#FFFFFF',
   border: '#f4f2f1',
 };
+
+const CONTENT_TOP_PADDING = Platform.OS === 'ios' ? 56 : 16;
 
 export default function ActivityScreen() {
   const router = useRouter();
@@ -77,17 +79,17 @@ export default function ActivityScreen() {
 
   if (loading) {
     return (
-      <ThemedView style={[styles.container, styles.centered]}>
+      <View style={[styles.container, styles.centered, { backgroundColor: ACT_COLORS.background }]}>
         <ActivityIndicator size="large" color={ACT_COLORS.primary} />
-      </ThemedView>
+      </View>
     );
   }
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={[styles.container, { backgroundColor: ACT_COLORS.background }]}>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: CONTENT_TOP_PADDING }]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ACT_COLORS.primary} />
         }
@@ -124,7 +126,7 @@ export default function ActivityScreen() {
           ))
         )}
       </ScrollView>
-    </ThemedView>
+    </View>
   );
 }
 

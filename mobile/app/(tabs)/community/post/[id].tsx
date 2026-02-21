@@ -19,11 +19,12 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { apiGet, apiPost, getAuthToken } from '@/constants/api';
+import { apiGet, apiPost, getAuthToken, getUploadsUrl } from '@/constants/api';
 
 const COLORS = {
   primary: '#C69C6D',
   primaryDark: '#8C6B4B',
+  background: '#fffaf9',
   text: '#161412',
   textMuted: '#71717a',
   zinc400: '#a1a1aa',
@@ -31,6 +32,11 @@ const COLORS = {
   peach: '#F9F3EA',
   border: 'rgba(0,0,0,0.06)',
 };
+
+function resolveAvatarUrl(avatarUrl: string | null | undefined): string | null {
+  if (!avatarUrl || !avatarUrl.trim()) return null;
+  return avatarUrl.startsWith('http') ? avatarUrl : getUploadsUrl(avatarUrl);
+}
 
 interface CommentAuthor {
   id: string;
@@ -149,20 +155,22 @@ export default function PostDetailScreen() {
 
   if (loading) {
     return (
-      <ThemedView style={[styles.container, styles.centered]}>
+      <View style={[styles.container, styles.centered, { backgroundColor: COLORS.background }]}>
         <ActivityIndicator size="large" color={COLORS.primary} />
         <ThemedText style={[styles.loadingText, { color: COLORS.zinc500 }]}>加载中...</ThemedText>
-      </ThemedView>
+      </View>
     );
   }
 
   if (!post) {
     return (
-      <ThemedView style={[styles.container, styles.centered]}>
+      <View style={[styles.container, styles.centered, { backgroundColor: COLORS.background }]}>
         <ThemedText style={[styles.errorText, { color: COLORS.zinc500 }]}>讨论不存在或已删除</ThemedText>
-      </ThemedView>
+      </View>
     );
   }
+
+  const authorAvatarUri = resolveAvatarUrl(post.author?.avatarUrl ?? null);
 
   const authorName = post.author?.nickname ?? '匿名用户';
   const firstTag = post.tags?.[0];
@@ -170,9 +178,9 @@ export default function PostDetailScreen() {
   const getReplies = (parentId: string) => post.comments?.filter((c) => c.parentId === parentId) ?? [];
 
   return (
-    <ThemedView style={styles.container}>
+    <View style={[styles.container, { backgroundColor: COLORS.background }]}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex} keyboardVerticalOffset={0}>
-        <View style={[styles.header, { borderBottomColor: COLORS.border }]}>
+        <View style={[styles.header, { borderBottomColor: COLORS.border, backgroundColor: COLORS.background }]}>
           <TouchableOpacity style={styles.headerBack} onPress={() => router.back()}>
             <MaterialIcons name="arrow-back-ios-new" size={22} color={COLORS.primary} />
           </TouchableOpacity>
@@ -190,8 +198,8 @@ export default function PostDetailScreen() {
         <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.authorRow}>
             <View style={[styles.avatarWrap, { borderColor: COLORS.primary + '33' }]}>
-              {post.author?.avatarUrl ? (
-                <Image source={{ uri: post.author.avatarUrl }} style={styles.avatarImg} />
+              {authorAvatarUri ? (
+                <Image source={{ uri: authorAvatarUri }} style={styles.avatarImg} />
               ) : (
                 <View style={[styles.avatarPlaceholder, { backgroundColor: COLORS.primary + '30' }]} />
               )}
@@ -240,12 +248,14 @@ export default function PostDetailScreen() {
             {topLevelComments.length === 0 ? (
               <ThemedText style={[styles.emptyComments, { color: COLORS.zinc500 }]}>暂无评论</ThemedText>
             ) : (
-              topLevelComments.map((c) => (
+              topLevelComments.map((c) => {
+                const commentAvatarUri = resolveAvatarUrl(c.author?.avatarUrl);
+                return (
                 <View key={c.id} style={styles.commentBlock}>
                   <View style={styles.commentRow}>
                     <View style={styles.commentAvatarWrap}>
-                      {c.author?.avatarUrl ? (
-                        <Image source={{ uri: c.author.avatarUrl }} style={styles.commentAvatar} />
+                      {commentAvatarUri ? (
+                        <Image source={{ uri: commentAvatarUri }} style={styles.commentAvatar} />
                       ) : (
                         <View style={[styles.commentAvatar, { backgroundColor: COLORS.zinc400 + '40' }]} />
                       )}
@@ -263,11 +273,13 @@ export default function PostDetailScreen() {
                           <ThemedText style={[styles.replyBtn, { color: COLORS.zinc500 }]}>回复</ThemedText>
                         </TouchableOpacity>
                       </View>
-                      {getReplies(c.id).map((r) => (
+                      {getReplies(c.id).map((r) => {
+                        const replyAvatarUri = resolveAvatarUrl(r.author?.avatarUrl);
+                        return (
                         <View key={r.id} style={[styles.replyWrap, { borderLeftColor: COLORS.border }]}>
                           <View style={styles.replyRow}>
-                            {r.author?.avatarUrl ? (
-                              <Image source={{ uri: r.author.avatarUrl }} style={styles.replyAvatar} />
+                            {replyAvatarUri ? (
+                              <Image source={{ uri: replyAvatarUri }} style={styles.replyAvatar} />
                             ) : (
                               <View style={[styles.replyAvatar, { backgroundColor: COLORS.zinc400 + '40' }]} />
                             )}
@@ -280,16 +292,16 @@ export default function PostDetailScreen() {
                             </View>
                           </View>
                         </View>
-                      ))}
+                      ); })}
                     </View>
                   </View>
                 </View>
-              ))
+              ); })
             )}
           </View>
         </ScrollView>
 
-        <View style={[styles.bottomBar, { borderTopColor: COLORS.border }]}>
+        <View style={[styles.bottomBar, { borderTopColor: COLORS.border, backgroundColor: COLORS.background }]}>
           <TouchableOpacity style={styles.bottomIcon}>
             <MaterialIcons name="add-photo-alternate" size={20} color={COLORS.zinc400} />
           </TouchableOpacity>
@@ -315,7 +327,7 @@ export default function PostDetailScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </ThemedView>
+    </View>
   );
 }
 
@@ -406,7 +418,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingBottom: Platform.OS === 'ios' ? 28 : 12,
     borderTopWidth: 1,
-    backgroundColor: '#fff',
     gap: 12,
   },
   bottomIcon: {

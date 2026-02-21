@@ -256,7 +256,7 @@ export function AnalysisResultContent({ data, onCtaPress }: AnalysisResultConten
         onPress={onCtaPress}
         activeOpacity={0.9}
       >
-        <IconSymbol name="auto_awesome" size={20} color="#fff" />
+        <IconSymbol name="sparkles" size={20} color="#fff" />
         <ThemedText style={styles.ctaText}>生成护肤方案更新</ThemedText>
       </TouchableOpacity>
     </ScrollView>

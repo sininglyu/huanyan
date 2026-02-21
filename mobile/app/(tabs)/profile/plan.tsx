@@ -54,7 +54,7 @@ export default function PlanScreen() {
         </TouchableOpacity>
         <ThemedText style={[styles.headerTitle, { color: PLAN_COLORS.text }]}>我的方案</ThemedText>
         <TouchableOpacity style={styles.headerBtn}>
-          <IconSymbol name="notifications" size={24} color={PLAN_COLORS.text} />
+          <IconSymbol name="bell.fill" size={24} color={PLAN_COLORS.text} />
         </TouchableOpacity>
       </View>
 

@@ -37,7 +37,7 @@ const GENDER_OPTIONS = [
   { value: '其他', label: '其他' },
 ] as const;
 
-export default function EditProfileScreen() {
+function EditProfileScreen() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const colors = Colors[colorScheme ?? 'light'];
@@ -223,6 +223,8 @@ export default function EditProfileScreen() {
     </ThemedView>
   );
 }
+
+export default EditProfileScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
