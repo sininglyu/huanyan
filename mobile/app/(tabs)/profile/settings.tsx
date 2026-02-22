@@ -3,7 +3,6 @@ import { StyleSheet, View, ScrollView, TouchableOpacity, Alert, ActivityIndicato
 import { useRouter } from 'expo-router';
 import { useLogto } from '@logto/rn';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { setAuthToken } from '@/constants/api';
@@ -44,10 +43,12 @@ export default function SettingsScreen() {
     );
   };
 
+  const LIGHT_BG = '#f8f7f6';
+
   return (
-    <ThemedView style={styles.container}>
+    <View style={[styles.container, { backgroundColor: LIGHT_BG }]}>
       <ScrollView style={styles.scroll}>
-        <TouchableOpacity style={styles.row}>
+        <TouchableOpacity style={styles.row} onPress={() => router.push('/(tabs)/profile/edit')}>
           <ThemedText>编辑资料</ThemedText>
           <ThemedText style={{ color: colors.subtitle }}>›</ThemedText>
         </TouchableOpacity>
@@ -82,7 +83,7 @@ export default function SettingsScreen() {
           )}
         </TouchableOpacity>
       </ScrollView>
-    </ThemedView>
+    </View>
   );
 }
 

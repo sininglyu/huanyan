@@ -193,7 +193,7 @@ export default function CreatePostScreen({ onClose, onPublishSuccess }: CreatePo
                 style={[styles.tagAddBtn, { borderColor: COLORS.primary + '66' }]}
                 onPress={() => setShowCustomTag(true)}
               >
-                <IconSymbol name="add" size={18} color={COLORS.primaryDark} />
+                <IconSymbol name="plus" size={18} color={COLORS.primaryDark} />
               </TouchableOpacity>
             </View>
           </View>

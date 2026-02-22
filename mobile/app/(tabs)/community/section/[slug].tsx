@@ -19,7 +19,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { apiGet } from '@/constants/api';
+import { apiGet, getAvatarFromUser } from '@/constants/api';
 
 const COLORS = {
   primary: '#C69C6D',
@@ -183,11 +183,13 @@ export default function CommunitySectionScreen() {
                 >
                   <View style={styles.cardMain}>
                     <View style={styles.cardTop}>
-                      {post.author?.avatarUrl ? (
-                        <Image source={{ uri: post.author.avatarUrl }} style={styles.cardAvatar} />
+                      {(() => {
+                        const u = getAvatarFromUser(post.author);
+                        return u ? (
+                        <Image source={{ uri: u }} style={styles.cardAvatar} resizeMode="cover" />
                       ) : (
                         <View style={[styles.cardAvatar, styles.avatarPlaceholder]} />
-                      )}
+                      ); })()}
                       <View>
                         <ThemedText style={[styles.cardAuthorName, { color: COLORS.zinc500 }]}>
                           {post.author?.nickname ?? '用户'}
@@ -238,7 +240,7 @@ export default function CommunitySectionScreen() {
 
       <View style={styles.fabWrap}>
         <View style={styles.fab}>
-          <IconSymbol name="add" size={20} color="#fff" />
+          <IconSymbol name="plus" size={20} color="#fff" />
           <ThemedText style={styles.fabText}>加入社区</ThemedText>
         </View>
       </View>

@@ -3,6 +3,8 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
+
+import { KeyboardDismissButton } from '@/components/keyboard-dismiss-button';
 import { LogtoProvider, LogtoConfig, UserScope } from '@logto/rn';
 import 'react-native-reanimated';
 
@@ -59,13 +61,16 @@ function RootLayoutNav() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(welcome)" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="ai" />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
+      <View style={styles.root}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(welcome)" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="ai" />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        </Stack>
+        <KeyboardDismissButton />
+      </View>
       <StatusBar style="auto" />
     </ThemeProvider>
   );
@@ -82,6 +87,7 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',

@@ -2,7 +2,6 @@ import React from 'react';
 import { StyleSheet, View, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -12,8 +11,10 @@ export default function RoutineTabScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
 
+  const LIGHT_BG = '#f8f7f6';
+
   return (
-    <ThemedView style={styles.container}>
+    <View style={[styles.container, { backgroundColor: LIGHT_BG }]}>
       <View style={styles.content}>
         <View style={[styles.iconWrap, { backgroundColor: colors.primaryLight + '60' }]}>
           <IconSymbol name="doc.text.fill" size={48} color={colors.primary} />
@@ -32,7 +33,7 @@ export default function RoutineTabScreen() {
           <ThemedText style={styles.buttonText}>我的方案</ThemedText>
         </TouchableOpacity>
       </View>
-    </ThemedView>
+    </View>
   );
 }
 

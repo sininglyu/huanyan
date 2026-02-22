@@ -291,7 +291,7 @@ export default function CommunityScreen() {
           end={{ x: 1, y: 1 }}
           style={styles.fabGradient}
         >
-          <IconSymbol name="add" size={28} color="#fff" />
+          <IconSymbol name="plus" size={28} color="#fff" />
         </LinearGradient>
       </TouchableOpacity>
     </ThemedView>
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   headerBtn: { width: 48, height: 48, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 28, fontWeight: '600', flex: 1, textAlign: 'center', letterSpacing: -0.5 },
+  headerTitle: { fontSize: 28, fontWeight: '600', flex: 1, textAlign: 'center', letterSpacing: -0.5, lineHeight: 36 },
   searchSection: { paddingHorizontal: 16, paddingVertical: 12 },
   searchWrap: {
     flexDirection: 'row',
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 8,
   },
-  sectionTitle: { fontSize: 18, fontWeight: '700', letterSpacing: -0.3 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', letterSpacing: -0.3, lineHeight: 24 },
   viewAll: { fontSize: 14, fontWeight: '600' },
   groupGrid: {
     flexDirection: 'row',
@@ -372,6 +372,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: -0.3,
+    lineHeight: 24,
     paddingHorizontal: 16,
     paddingBottom: 8,
     paddingTop: 16,
@@ -394,10 +395,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   discussBody: { flex: 1 },
-  discussTitle: { fontSize: 14, fontWeight: '700' },
-  discussMeta: { fontSize: 11, marginTop: 4, letterSpacing: 0.5, fontWeight: '600' },
+  discussTitle: { fontSize: 14, fontWeight: '700', lineHeight: 20 },
+  discussMeta: { fontSize: 11, marginTop: 4, letterSpacing: 0.5, fontWeight: '600', lineHeight: 16 },
   discussUpCol: { alignItems: 'center' },
-  discussUp: { fontSize: 12, fontWeight: '700' },
+  discussUp: { fontSize: 12, fontWeight: '700', lineHeight: 16 },
   bannerWrap: { padding: 16, paddingBottom: 28 },
   banner: {
     borderRadius: 16,

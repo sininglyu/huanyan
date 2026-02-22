@@ -9,6 +9,24 @@ export function getUploadsUrl(imagePath: string): string {
   return `${base}/uploads/${(imagePath || '').replace(/^\/+/, '')}`;
 }
 
+/** Resolve avatar URL: use as-is if full URL, otherwise prefix with uploads base.
+ * Rewrites localhost/127.0.0.1 to API base so device/emulator can reach the backend. */
+export function resolveAvatarUrl(avatarUrl: string | null | undefined): string | null {
+  if (!avatarUrl || !avatarUrl.trim()) return null;
+  const url = avatarUrl.trim();
+  const base = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+  const full = url.startsWith('http') ? url : getUploadsUrl(url);
+  // Replace localhost/127.0.0.1 with API base so device can reach backend
+  return full.replace(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/, base);
+}
+
+/** Get avatar URL from user/author object (handles avatarUrl and avatar_url) */
+export function getAvatarFromUser(user: { avatarUrl?: string | null; avatar_url?: string | null } | null | undefined): string | null {
+  if (!user) return null;
+  const url = user.avatarUrl ?? (user as { avatar_url?: string | null }).avatar_url;
+  return resolveAvatarUrl(url);
+}
+
 export interface ErrorResponse {
   error: {
     code: string;

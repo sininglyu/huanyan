@@ -49,7 +49,7 @@ export default function TabLayout() {
         options={{
           title: '社区',
           tabBarButton: HapticTab,
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="groups" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="person.2.fill" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -91,7 +91,7 @@ export default function TabLayout() {
         options={{
           title: '方案',
           tabBarButton: HapticTab,
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar_today" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="calendar" color={color} />,
         }}
       />
       <Tabs.Screen

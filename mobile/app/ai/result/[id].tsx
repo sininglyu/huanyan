@@ -6,10 +6,10 @@ import {
   TouchableOpacity,
   Share,
   Alert,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { apiGet } from '@/constants/api';
@@ -24,6 +24,9 @@ export default function AnalysisResultScreen() {
   const [data, setData] = useState<AnalysisResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const LIGHT_BG = '#F5F0E8';
+  const DARK_TEXT = '#5C4033';
+  const DARK_SUBTITLE = '#6B5B4F';
 
   useEffect(() => {
     if (!id) return;
@@ -47,38 +50,39 @@ export default function AnalysisResultScreen() {
 
   if (loading) {
     return (
-      <ThemedView style={[styles.container, styles.centered]}>
+      <View style={[styles.container, styles.centered, { backgroundColor: LIGHT_BG }]}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <ThemedText style={styles.loadingText}>加载分析结果...</ThemedText>
-      </ThemedView>
+        <ThemedText style={[styles.loadingText, { color: DARK_TEXT }]}>加载分析结果...</ThemedText>
+      </View>
     );
   }
   if (error || !data) {
     return (
-      <ThemedView style={[styles.container, styles.centered]}>
-        <ThemedText style={styles.errorText}>{error ?? '未找到分析结果'}</ThemedText>
-      </ThemedView>
+      <View style={[styles.container, styles.centered, { backgroundColor: LIGHT_BG }]}>
+        <ThemedText style={[styles.errorText, { color: DARK_TEXT }]}>{error ?? '未找到分析结果'}</ThemedText>
+      </View>
     );
   }
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { borderBottomColor: colors.subtitle + '30' }]}>
+    <View style={[styles.container, { backgroundColor: LIGHT_BG }]}>
+      <View style={[styles.header, { borderBottomColor: DARK_SUBTITLE + '40' }]}>
         <TouchableOpacity style={styles.headerBtn} onPress={() => router.back()}>
-          <IconSymbol name="chevron.left" size={24} color={colors.text} />
+          <IconSymbol name="chevron.left" size={24} color={DARK_TEXT} />
         </TouchableOpacity>
-        <ThemedText type="defaultSemiBold" style={styles.headerTitle}>
+        <ThemedText type="defaultSemiBold" style={[styles.headerTitle, { color: DARK_TEXT }]}>
           分析结果
         </ThemedText>
         <TouchableOpacity style={styles.headerBtn} onPress={handleShare}>
-          <IconSymbol name="paperplane.fill" size={22} color={colors.text} />
+          <IconSymbol name="paperplane.fill" size={22} color={DARK_TEXT} />
         </TouchableOpacity>
       </View>
       <AnalysisResultContent
         data={data}
         onCtaPress={() => router.push('/ai/ar-tryon')}
+        forceLightBackground
       />
-    </ThemedView>
+    </View>
   );
 }
 
@@ -90,12 +94,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 8,
-    paddingTop: 56,
+    paddingTop: Platform.OS === 'ios' ? 60 : 48,
     paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerBtn: { padding: 8, marginLeft: 8, marginRight: 8 },
   headerTitle: { fontSize: 18 },
   loadingText: { marginTop: 12 },
-  errorText: { color: '#888' },
+  errorText: { fontSize: 16 },
 });

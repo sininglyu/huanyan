@@ -19,7 +19,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { apiGet, apiPost, getAuthToken, getUploadsUrl } from '@/constants/api';
+import { apiGet, apiPost, getAuthToken, getAvatarFromUser } from '@/constants/api';
 
 const COLORS = {
   primary: '#C69C6D',
@@ -32,11 +32,6 @@ const COLORS = {
   peach: '#F9F3EA',
   border: 'rgba(0,0,0,0.06)',
 };
-
-function resolveAvatarUrl(avatarUrl: string | null | undefined): string | null {
-  if (!avatarUrl || !avatarUrl.trim()) return null;
-  return avatarUrl.startsWith('http') ? avatarUrl : getUploadsUrl(avatarUrl);
-}
 
 interface CommentAuthor {
   id: string;
@@ -170,7 +165,7 @@ export default function PostDetailScreen() {
     );
   }
 
-  const authorAvatarUri = resolveAvatarUrl(post.author?.avatarUrl ?? null);
+  const authorAvatarUri = getAvatarFromUser(post.author);
 
   const authorName = post.author?.nickname ?? '匿名用户';
   const firstTag = post.tags?.[0];
@@ -199,7 +194,7 @@ export default function PostDetailScreen() {
           <View style={styles.authorRow}>
             <View style={[styles.avatarWrap, { borderColor: COLORS.primary + '33' }]}>
               {authorAvatarUri ? (
-                <Image source={{ uri: authorAvatarUri }} style={styles.avatarImg} />
+                <Image source={{ uri: authorAvatarUri }} style={styles.avatarImg} resizeMode="cover" />
               ) : (
                 <View style={[styles.avatarPlaceholder, { backgroundColor: COLORS.primary + '30' }]} />
               )}
@@ -249,13 +244,13 @@ export default function PostDetailScreen() {
               <ThemedText style={[styles.emptyComments, { color: COLORS.zinc500 }]}>暂无评论</ThemedText>
             ) : (
               topLevelComments.map((c) => {
-                const commentAvatarUri = resolveAvatarUrl(c.author?.avatarUrl);
+                const commentAvatarUri = getAvatarFromUser(c.author);
                 return (
                 <View key={c.id} style={styles.commentBlock}>
                   <View style={styles.commentRow}>
                     <View style={styles.commentAvatarWrap}>
                       {commentAvatarUri ? (
-                        <Image source={{ uri: commentAvatarUri }} style={styles.commentAvatar} />
+                        <Image source={{ uri: commentAvatarUri }} style={styles.commentAvatar} resizeMode="cover" />
                       ) : (
                         <View style={[styles.commentAvatar, { backgroundColor: COLORS.zinc400 + '40' }]} />
                       )}
@@ -274,12 +269,12 @@ export default function PostDetailScreen() {
                         </TouchableOpacity>
                       </View>
                       {getReplies(c.id).map((r) => {
-                        const replyAvatarUri = resolveAvatarUrl(r.author?.avatarUrl);
+                        const replyAvatarUri = getAvatarFromUser(r.author);
                         return (
                         <View key={r.id} style={[styles.replyWrap, { borderLeftColor: COLORS.border }]}>
                           <View style={styles.replyRow}>
                             {replyAvatarUri ? (
-                              <Image source={{ uri: replyAvatarUri }} style={styles.replyAvatar} />
+                              <Image source={{ uri: replyAvatarUri }} style={styles.replyAvatar} resizeMode="cover" />
                             ) : (
                               <View style={[styles.replyAvatar, { backgroundColor: COLORS.zinc400 + '40' }]} />
                             )}

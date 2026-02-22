@@ -13,7 +13,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { apiGet, getAuthToken } from '@/constants/api';
+import { apiGet, getAuthToken, getAvatarFromUser } from '@/constants/api';
 import { useAuth } from '@/contexts/auth-context';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
@@ -26,6 +26,9 @@ const PROFILE_COLORS = {
   border: '#f4f2f1',
   green: '#07880e',
   cardBg: '#FFFFFF',
+  /** Brownish bar color for weekly skin score chart */
+  chartBar: '#9C7355',
+  chartBarToday: '#7D5A3E',
 };
 
 const cardStyle = {
@@ -149,12 +152,11 @@ export default function ProfileScreen() {
   }
 
   const displayName = profile?.nickname ?? '焕颜用户';
+  const profileAvatarUri = getAvatarFromUser(profile);
   const streak = profile?.currentStreak ?? 0;
   const scanCount = analysisHistory?.length ?? 0;
-  const score = weeklySkinReports?.averageScore ?? skinReports?.averageScore ?? analysisHistory?.[0]?.score ?? 0;
-  const changePercent = weeklySkinReports?.changePercent ?? skinReports?.changePercent ?? 0;
   const rawWeek = weeklySkinReports as
-    | { dailyScores?: Array<{ date: string; score: number | null }>; daily_scores?: Array<{ date: string; score: number | null }> }
+    | { averageScore?: number; dailyScores?: Array<{ date: string; score: number | null }>; daily_scores?: Array<{ date: string; score: number | null }> }
     | null
     | undefined;
   const dailyList = Array.isArray(rawWeek?.dailyScores) ? rawWeek.dailyScores : Array.isArray(rawWeek?.daily_scores) ? rawWeek.daily_scores : [];
@@ -168,12 +170,25 @@ export default function ProfileScreen() {
   }
   const CHART_HEIGHT_PX = 100;
   const weekDates = getCalendarWeekDates();
+  /** Weekly average = average of Mon–Sun daily scores (only days with tests) */
+  const scoresInWeek = weekDates
+    .map((d) => dateToScore.get(d))
+    .filter((s): s is number => s != null);
+  /** Displayed score: average of week (Mon–Sun, days with tests only), or fallback */
+  const score =
+    scoresInWeek.length > 0
+      ? Math.round(scoresInWeek.reduce((a, b) => a + b, 0) / scoresInWeek.length)
+      : (weeklySkinReports?.averageScore ?? skinReports?.averageScore ?? analysisHistory?.[0]?.score ?? 0);
+  const changePercent = weeklySkinReports?.changePercent ?? skinReports?.changePercent ?? 0;
   const todayIndex = getTodayWeekIndex();
+  /** Each bar: brownish if test taken that day, none if not; height = day's average score (0–100) */
   const barData = weekDates.map((dateStr, i) => {
-    const score = dateToScore.get(dateStr);
-    const percent = score != null ? Math.min(100, Math.max(0, Number(score))) : 0;
+    const dayScore = dateToScore.get(dateStr);
+    const hasTest = dayScore != null;
+    const percent = hasTest ? Math.min(100, Math.max(0, Number(dayScore))) : 0;
     return {
       label: WEEK_DAY_LABELS[i],
+      hasTest,
       percent,
       isToday: i === todayIndex,
     };
@@ -197,13 +212,19 @@ export default function ProfileScreen() {
       >
         <View style={[styles.profileCard, cardStyle]}>
           <View style={styles.profileTop}>
-            <View style={[styles.avatarWrap, { borderColor: PROFILE_COLORS.primary + '33' }]}>
-              {profile?.avatarUrl ? (
-                <Image source={{ uri: profile.avatarUrl }} style={styles.avatarImg} />
+            <TouchableOpacity
+              style={[styles.avatarWrap, { borderColor: PROFILE_COLORS.primary + '33' }]}
+              onPress={() => router.push('/profile/edit')}
+              activeOpacity={0.9}
+            >
+              {profileAvatarUri ? (
+                <Image source={{ uri: profileAvatarUri }} style={styles.avatarImg} resizeMode="cover" />
               ) : (
-                <View style={[styles.avatarPlaceholder, { backgroundColor: PROFILE_COLORS.primary + '20' }]} />
+                <View style={[styles.avatarPlaceholder, { backgroundColor: PROFILE_COLORS.primary + '20' }]}>
+                  <IconSymbol name="photo.fill" size={28} color={PROFILE_COLORS.subtitle} />
+                </View>
               )}
-            </View>
+            </TouchableOpacity>
             <View style={styles.profileInfo}>
               <ThemedText style={[styles.nickname, { color: PROFILE_COLORS.text }]}>{displayName}</ThemedText>
               <ThemedText style={[styles.profileDetail, { color: PROFILE_COLORS.subtitle }]}>
@@ -269,15 +290,15 @@ export default function ProfileScreen() {
           </View>
           <View style={[styles.barChartRow, { height: CHART_HEIGHT_PX + 28 }]}>
             {barData.map((item, i) => (
-              <View key={`${item.label}-${i}`} style={styles.barCol}>
+              <View key={`${item.label}-${i}`} style={[styles.barCol, item.isToday && styles.barColToday]}>
                 <View style={[styles.barTray, { height: CHART_HEIGHT_PX }]}>
-                  {item.percent > 0 && (
+                  {item.hasTest && (
                     <View
                       style={[
                         styles.bar,
                         {
-                          height: Math.max(4, (item.percent / 100) * CHART_HEIGHT_PX),
-                          backgroundColor: item.isToday ? PROFILE_COLORS.primary : PROFILE_COLORS.primary + '33',
+                          height: Math.max(6, (item.percent / 100) * CHART_HEIGHT_PX),
+                          backgroundColor: item.isToday ? PROFILE_COLORS.chartBarToday : PROFILE_COLORS.chartBar,
                         },
                       ]}
                     />
@@ -286,7 +307,8 @@ export default function ProfileScreen() {
                 <ThemedText
                   style={[
                     styles.barLabel,
-                    { color: item.isToday ? '#E6A23C' : PROFILE_COLORS.subtitle },
+                    { color: PROFILE_COLORS.primary },
+                    item.isToday && styles.barLabelToday,
                   ]}
                   numberOfLines={1}
                 >
@@ -376,7 +398,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   headerBtn: { width: 48, height: 48, justifyContent: 'center', alignItems: 'flex-start' },
-  headerTitle: { fontSize: 24, fontWeight: '600', flex: 1, textAlign: 'center' },
+  headerTitle: { fontSize: 24, fontWeight: '600', flex: 1, textAlign: 'center', lineHeight: 32 },
   scroll: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 32 },
   profileCard: {
@@ -438,8 +460,8 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 4,
   },
-  statLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1 },
-  statValue: { fontSize: 20, fontWeight: '700', letterSpacing: -0.5 },
+  statLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1, lineHeight: 14 },
+  statValue: { fontSize: 20, fontWeight: '700', letterSpacing: -0.5, lineHeight: 26 },
   journeySectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -447,17 +469,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     marginBottom: 12,
   },
-  sectionTitle: { fontSize: 18, fontWeight: '700' },
+  sectionTitle: { fontSize: 18, fontWeight: '700', lineHeight: 24 },
   viewDetailLink: { fontSize: 12, fontWeight: '700', letterSpacing: 2 },
   journeyCard: {
     padding: 24,
     marginBottom: 24,
   },
   journeyScoreBlock: { marginBottom: 24, minHeight: 56 },
-  journeyLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5 },
+  journeyLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.5, lineHeight: 16 },
   journeyScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'nowrap' },
-  journeyScore: { fontSize: 28, fontWeight: '700', minWidth: 72 },
-  journeyChange: { fontSize: 12, fontWeight: '700', flexShrink: 0 },
+  journeyScore: { fontSize: 28, fontWeight: '700', minWidth: 72, lineHeight: 36 },
+  journeyChange: { fontSize: 12, fontWeight: '700', flexShrink: 0, lineHeight: 16 },
   barChartRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -473,6 +495,12 @@ const styles = StyleSheet.create({
     gap: 6,
     minWidth: 24,
   },
+  barColToday: {
+    backgroundColor: PROFILE_COLORS.primary + '15',
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
   barTray: {
     width: '100%',
     justifyContent: 'flex-end',
@@ -487,8 +515,9 @@ const styles = StyleSheet.create({
       android: { elevation: 1 },
     }),
   },
-  barLabel: { fontSize: 9, fontWeight: '700' },
-  prefsTitle: { fontSize: 18, fontWeight: '700', paddingHorizontal: 4, paddingTop: 16, marginBottom: 12 },
+  barLabel: { fontSize: 9, fontWeight: '700', lineHeight: 14 },
+  barLabelToday: { fontWeight: '800', fontSize: 10 },
+  prefsTitle: { fontSize: 18, fontWeight: '700', lineHeight: 24, paddingHorizontal: 4, paddingTop: 16, marginBottom: 12 },
   prefRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -504,6 +533,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   prefBody: { flex: 1 },
-  prefTitle: { fontSize: 14, fontWeight: '700' },
+  prefTitle: { fontSize: 14, fontWeight: '700', lineHeight: 20 },
   prefSub: { fontSize: 12, marginTop: 2 },
 });

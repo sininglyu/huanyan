@@ -20,7 +20,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { apiGet, apiPatch, apiUploadFormData, getAuthToken } from '@/constants/api';
+import { apiGet, apiPatch, apiUploadFormData, getAuthToken, resolveAvatarUrl } from '@/constants/api';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
 const PROFILE_EDIT_COLORS = {
   primary: '#cfa577',
@@ -115,6 +116,7 @@ function EditProfileScreen() {
       let avatarUrl: string | null = avatarUrlFromServer;
       if (pendingAvatarFile) {
         const formData = new FormData();
+        // React Native FormData accepts { uri, type, name } for file upload on both iOS and Android
         formData.append('image', {
           uri: pendingAvatarFile.uri,
           type: pendingAvatarFile.type ?? 'image/jpeg',
@@ -145,22 +147,39 @@ function EditProfileScreen() {
     );
   }
 
-  const displayAvatar = avatarUri ?? avatarUrlFromServer;
+  const displayAvatar = avatarUri ?? resolveAvatarUrl(avatarUrlFromServer);
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: PROFILE_EDIT_COLORS.background }]}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <TouchableOpacity style={styles.avatarWrap} onPress={pickImage} activeOpacity={0.9}>
-          {displayAvatar ? (
-            <Image source={{ uri: displayAvatar }} style={styles.avatarImg} />
-          ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: PROFILE_EDIT_COLORS.primary + '30' }]}>
-              <ThemedText style={[styles.avatarPlaceholderText, { color: PROFILE_EDIT_COLORS.subtitle }]}>
-                点击上传
-              </ThemedText>
-            </View>
-          )}
-        </TouchableOpacity>
+        <View style={styles.avatarSection}>
+          <TouchableOpacity style={styles.avatarWrap} onPress={pickImage} activeOpacity={0.9}>
+            {displayAvatar ? (
+              <Image
+                source={{ uri: displayAvatar }}
+                style={styles.avatarImg}
+                key={displayAvatar}
+              />
+            ) : (
+              <View style={[styles.avatarPlaceholder, { backgroundColor: PROFILE_EDIT_COLORS.primary + '30' }]}>
+                <IconSymbol name="photo.fill" size={40} color={PROFILE_EDIT_COLORS.subtitle} />
+                <ThemedText style={[styles.avatarPlaceholderText, { color: PROFILE_EDIT_COLORS.subtitle }]}>
+                  添加头像
+                </ThemedText>
+              </View>
+            )}
+            {displayAvatar && (
+              <View style={[styles.avatarBadge, { backgroundColor: PROFILE_EDIT_COLORS.primary }]}>
+                <IconSymbol name="camera.fill" size={16} color="#fff" />
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.changeAvatarBtn} onPress={pickImage}>
+            <ThemedText style={[styles.changeAvatarText, { color: PROFILE_EDIT_COLORS.primary }]}>
+              {displayAvatar ? '更换头像' : '点击添加头像'}
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.field}>
           <ThemedText style={[styles.label, { color: PROFILE_EDIT_COLORS.subtitle }]}>用户名</ThemedText>
@@ -230,14 +249,18 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { justifyContent: 'center', alignItems: 'center' },
   scroll: { flex: 1 },
-  scrollContent: { padding: 24, paddingBottom: 48 },
+  scrollContent: {
+    padding: 24,
+    paddingTop: Platform.OS === 'ios' ? 56 : 24,
+    paddingBottom: 48,
+  },
+  avatarSection: { alignItems: 'center', marginBottom: 32 },
   avatarWrap: {
-    alignSelf: 'center',
+    position: 'relative',
     width: 120,
     height: 120,
     borderRadius: 60,
     overflow: 'hidden',
-    marginBottom: 32,
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
       android: { elevation: 4 },
@@ -250,7 +273,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarPlaceholderText: { fontSize: 12 },
+  avatarPlaceholderText: { fontSize: 14, fontWeight: '600', marginTop: 8 },
+  avatarBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: PROFILE_EDIT_COLORS.background,
+  },
+  changeAvatarBtn: {
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  changeAvatarText: { fontSize: 15, fontWeight: '600' },
   field: { marginBottom: 20 },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 8 },
   input: {

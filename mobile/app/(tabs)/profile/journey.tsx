@@ -6,12 +6,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { apiGet, getAuthToken } from '@/constants/api';
 
 interface HistoryItem {
@@ -23,8 +21,6 @@ interface HistoryItem {
 
 export default function JourneyScreen() {
   const router = useRouter();
-  const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -62,32 +58,40 @@ export default function JourneyScreen() {
     fetchHistory();
   };
 
+  const LIGHT_BG = '#F5F0E8';
+  const DARK_TEXT = '#5C4033';
+  const DARK_SUBTITLE = '#6B5B4F';
+  const PRIMARY = '#C4A77D';
+  const CARD_BG = '#FFFFFF';
+  const THUMB_BG = PRIMARY + '30';
+  const CONTENT_TOP = Platform.OS === 'ios' ? 56 : 16;
+
   return (
-    <ThemedView style={styles.container}>
+    <View style={[styles.container, { backgroundColor: LIGHT_BG }]}>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: CONTENT_TOP }]}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={PRIMARY} />
         }
       >
         {loading ? (
           <View style={styles.centered}>
-            <ActivityIndicator size="large" color={colors.primary} />
-            <ThemedText style={[styles.loadingText, { color: colors.subtitle }]}>
+            <ActivityIndicator size="large" color={PRIMARY} />
+            <ThemedText style={[styles.loadingText, { color: DARK_SUBTITLE }]}>
               加载分析记录...
             </ThemedText>
           </View>
         ) : error ? (
           <View style={styles.centered}>
-            <ThemedText style={styles.errorText}>{error}</ThemedText>
+            <ThemedText style={[styles.errorText, { color: DARK_TEXT }]}>{error}</ThemedText>
           </View>
         ) : items.length === 0 ? (
           <View style={styles.centered}>
-            <ThemedText style={[styles.emptyText, { color: colors.subtitle }]}>
+            <ThemedText style={[styles.emptyText, { color: DARK_TEXT }]}>
               暂无分析记录
             </ThemedText>
-            <ThemedText style={[styles.emptyHint, { color: colors.subtitle }]}>
+            <ThemedText style={[styles.emptyHint, { color: DARK_SUBTITLE }]}>
               去首页「分析我的皮肤」拍摄照片获取分析
             </ThemedText>
           </View>
@@ -95,13 +99,13 @@ export default function JourneyScreen() {
           items.map((item) => (
             <TouchableOpacity
               key={item.id}
-              style={[styles.card, { backgroundColor: colors.primaryLight + '15' }]}
+              style={[styles.card, { backgroundColor: CARD_BG }]}
               onPress={() => router.push(`/(tabs)/profile/analysis/${item.id}`)}
               activeOpacity={0.8}
             >
-              <View style={[styles.thumb, { backgroundColor: colors.primaryLight + '50' }]} />
+              <View style={[styles.thumb, { backgroundColor: THUMB_BG }]} />
               <View style={styles.cardBody}>
-                <ThemedText type="defaultSemiBold">
+                <ThemedText type="defaultSemiBold" style={{ color: DARK_TEXT }}>
                   {item.createdAt
                     ? new Date(item.createdAt).toLocaleString('zh-CN', {
                         year: 'numeric',
@@ -112,16 +116,16 @@ export default function JourneyScreen() {
                       })
                     : '分析记录'}
                 </ThemedText>
-                <ThemedText style={[styles.scoreText, { color: colors.subtitle }]}>
+                <ThemedText style={[styles.scoreText, { color: DARK_SUBTITLE }]}>
                   得分: {item.score ?? '-'} / 100
                 </ThemedText>
               </View>
-              <ThemedText style={[styles.chevron, { color: colors.subtitle }]}>›</ThemedText>
+              <ThemedText style={[styles.chevron, { color: DARK_SUBTITLE }]}>›</ThemedText>
             </TouchableOpacity>
           ))
         )}
       </ScrollView>
-    </ThemedView>
+    </View>
   );
 }
 
@@ -131,7 +135,7 @@ const styles = StyleSheet.create({
   scrollContent: { padding: 16, paddingBottom: 32 },
   centered: { paddingVertical: 48, alignItems: 'center' },
   loadingText: { marginTop: 12, fontSize: 14 },
-  errorText: { color: '#888', fontSize: 14 },
+  errorText: { fontSize: 14 },
   emptyText: { fontSize: 16 },
   emptyHint: { fontSize: 13, marginTop: 8 },
   card: {
@@ -140,6 +144,10 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
+      android: { elevation: 3 },
+    }),
   },
   thumb: { width: 56, height: 56, borderRadius: 10 },
   cardBody: { flex: 1, marginLeft: 14 },

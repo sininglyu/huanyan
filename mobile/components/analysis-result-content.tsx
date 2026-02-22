@@ -111,11 +111,21 @@ const STROKE_WIDTH = 8;
 interface AnalysisResultContentProps {
   data: AnalysisResponse;
   onCtaPress: () => void;
+  /** Force light backgrounds regardless of system theme */
+  forceLightBackground?: boolean;
 }
 
-export function AnalysisResultContent({ data, onCtaPress }: AnalysisResultContentProps) {
+const LIGHT_MODE_TEXT = '#5C4033';
+const LIGHT_MODE_SUBTITLE = '#6B5B4F';
+const LIGHT_MODE_PRIMARY = '#C4A77D';
+
+export function AnalysisResultContent({ data, onCtaPress, forceLightBackground }: AnalysisResultContentProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const useLight = forceLightBackground ?? colorScheme === 'light';
+  const textColor = useLight ? LIGHT_MODE_TEXT : colors.text;
+  const subtitleColor = useLight ? LIGHT_MODE_SUBTITLE : colors.subtitle;
+  const primaryColor = useLight ? LIGHT_MODE_PRIMARY : colors.primary;
   const r = data.result;
   const score = data.score ?? r?.overallScore ?? r?.score ?? 0;
   const indicators: IndicatorItem[] = Array.isArray(r?.indicators) ? r.indicators : [];
@@ -127,20 +137,20 @@ export function AnalysisResultContent({ data, onCtaPress }: AnalysisResultConten
         style={[
           styles.scoreCard,
           SectionBoxShadow,
-          { backgroundColor: colorScheme === 'dark' ? '#2a241e' : '#FFFFFF' },
+          { backgroundColor: useLight ? '#FFFFFF' : '#2a241e' },
         ]}
       >
         <View style={styles.faceIconBg}>
-          <IconSymbol name="person.fill" size={96} color={colors.subtitle} />
+          <IconSymbol name="person.fill" size={96} color={subtitleColor} />
         </View>
-        <ThemedText type="defaultSemiBold" style={styles.scoreCardTitle}>
+        <ThemedText type="defaultSemiBold" style={[styles.scoreCardTitle, { color: textColor }]}>
           整体皮肤健康
         </ThemedText>
         <View style={styles.scoreCardRow}>
           {data.imagePath ? (
             <Image source={{ uri: getUploadsUrl(data.imagePath) }} style={styles.avatar} />
           ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: colors.subtitle + '30' }]} />
+            <View style={[styles.avatarPlaceholder, { backgroundColor: subtitleColor + '30' }]} />
           )}
         </View>
         <View style={styles.circleWrap}>
@@ -152,7 +162,7 @@ export function AnalysisResultContent({ data, onCtaPress }: AnalysisResultConten
                 height: CIRCLE_SIZE,
                 borderRadius: CIRCLE_SIZE / 2,
                 borderWidth: STROKE_WIDTH,
-                borderColor: colorScheme === 'dark' ? '#3a322a' : '#f4f2f1',
+                borderColor: useLight ? '#f4f2f1' : '#3a322a',
               },
             ]}
           />
@@ -165,26 +175,26 @@ export function AnalysisResultContent({ data, onCtaPress }: AnalysisResultConten
                 borderRadius: CIRCLE_SIZE / 2,
                 borderWidth: STROKE_WIDTH,
                 borderColor: 'transparent',
-                borderLeftColor: score > 0 ? colors.primary : 'transparent',
-                borderTopColor: score > 25 ? colors.primary : 'transparent',
-                borderRightColor: score > 50 ? colors.primary : 'transparent',
-                borderBottomColor: score > 75 ? colors.primary : 'transparent',
+                borderLeftColor: score > 0 ? primaryColor : 'transparent',
+                borderTopColor: score > 25 ? primaryColor : 'transparent',
+                borderRightColor: score > 50 ? primaryColor : 'transparent',
+                borderBottomColor: score > 75 ? primaryColor : 'transparent',
                 transform: [{ rotate: '-90deg' }],
               },
             ]}
           />
           <View style={styles.circleCenter}>
-            <ThemedText style={[styles.scoreNumber, { color: colors.text }]}>{score}</ThemedText>
+            <ThemedText style={[styles.scoreNumber, { color: textColor }]}>{score}</ThemedText>
           </View>
         </View>
         <View style={styles.scoreBadgeWrap}>
-          <View style={[styles.scoreBadge, { backgroundColor: colors.primary + '20' }]}>
-            <ThemedText style={[styles.scoreBadgeText, { color: colors.primary }]}>
+          <View style={[styles.scoreBadge, { backgroundColor: primaryColor + '20' }]}>
+            <ThemedText style={[styles.scoreBadgeText, { color: primaryColor }]}>
               {getScoreLabel(score)}
             </ThemedText>
           </View>
         </View>
-        <ThemedText style={[styles.scoreDesc, { color: colors.subtitle }]} numberOfLines={3}>
+        <ThemedText style={[styles.scoreDesc, { color: subtitleColor }]} numberOfLines={3}>
           {getScoreDescription(score, r?.skinType ?? '未知')}
         </ThemedText>
       </View>
@@ -192,10 +202,10 @@ export function AnalysisResultContent({ data, onCtaPress }: AnalysisResultConten
       {/* 详细指标 */}
       <View style={styles.indicatorsSection}>
         <View style={styles.indicatorsHeader}>
-          <ThemedText type="defaultSemiBold" style={styles.indicatorsTitle}>
+          <ThemedText type="defaultSemiBold" style={[styles.indicatorsTitle, { color: textColor }]}>
             详细指标
           </ThemedText>
-          <ThemedText style={[styles.indicatorsDate, { color: colors.subtitle }]}>
+          <ThemedText style={[styles.indicatorsDate, { color: subtitleColor }]}>
             {data.createdAt ? formatTimestamp(data.createdAt) : ''}
           </ThemedText>
         </View>
@@ -207,36 +217,36 @@ export function AnalysisResultContent({ data, onCtaPress }: AnalysisResultConten
                 style={[
                   styles.indicatorCard,
                   SectionBoxShadow,
-                  { backgroundColor: colorScheme === 'dark' ? '#2a241e' : '#FFFFFF' },
+                  { backgroundColor: useLight ? '#FFFFFF' : '#2a241e' },
                 ]}
               >
                 <View style={styles.indicatorCardTop}>
                   <View
                     style={[
                       styles.indicatorIconWrap,
-                      { backgroundColor: (INDICATOR_COLORS[ind.id] ?? colors.primary) + '25' },
+                      { backgroundColor: (INDICATOR_COLORS[ind.id] ?? primaryColor) + '25' },
                     ]}
                   >
                     <MaterialIcons
                       name={INDICATOR_MATERIAL_ICONS[ind.id] ?? 'spa'}
                       size={22}
-                      color={INDICATOR_COLORS[ind.id] ?? colors.primary}
+                      color={INDICATOR_COLORS[ind.id] ?? primaryColor}
                     />
                   </View>
-                  <ThemedText style={[styles.indicatorPercent, { color: colors.text }]}>
+                  <ThemedText style={[styles.indicatorPercent, { color: textColor }]}>
                     {ind.percent}%
                   </ThemedText>
                 </View>
-                <ThemedText type="defaultSemiBold" style={[styles.indicatorLabel, { color: colors.text }]}>
+                <ThemedText type="defaultSemiBold" style={[styles.indicatorLabel, { color: textColor }]}>
                   {ind.label}
                 </ThemedText>
-                <View style={[styles.indicatorBarBg, { backgroundColor: colors.subtitle + '20' }]}>
+                <View style={[styles.indicatorBarBg, { backgroundColor: subtitleColor + '20' }]}>
                   <View
                     style={[
                       styles.indicatorBarFill,
                       {
                         width: `${Math.min(100, ind.percent)}%`,
-                        backgroundColor: INDICATOR_COLORS[ind.id] ?? colors.primary,
+                        backgroundColor: INDICATOR_COLORS[ind.id] ?? primaryColor,
                       },
                     ]}
                   />
@@ -245,14 +255,14 @@ export function AnalysisResultContent({ data, onCtaPress }: AnalysisResultConten
             ))}
           </View>
         ) : (
-          <ThemedText style={[styles.emptyIndicators, { color: colors.subtitle }]}>
+          <ThemedText style={[styles.emptyIndicators, { color: subtitleColor }]}>
             暂无详细指标
           </ThemedText>
         )}
       </View>
 
       <TouchableOpacity
-        style={[styles.cta, { backgroundColor: colors.primary }]}
+        style={[styles.cta, { backgroundColor: primaryColor }]}
         onPress={onCtaPress}
         activeOpacity={0.9}
       >
@@ -282,7 +292,7 @@ const styles = StyleSheet.create({
     right: -16,
     opacity: 0.06,
   },
-  scoreCardTitle: { fontSize: 20, marginBottom: 16, textAlign: 'center' },
+  scoreCardTitle: { fontSize: 20, lineHeight: 28, marginBottom: 16, textAlign: 'center' },
   scoreCardRow: { marginBottom: 8 },
   avatar: { width: 36, height: 36, borderRadius: 18 },
   avatarPlaceholder: { width: 36, height: 36, borderRadius: 18 },
@@ -306,7 +316,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'visible',
   },
-  scoreNumber: { fontSize: 48, fontWeight: '800' },
+  scoreNumber: { fontSize: 48, fontWeight: '800', lineHeight: 58 },
   scoreBadgeWrap: {
     alignItems: 'center',
     marginTop: 8,
@@ -316,7 +326,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
   },
-  scoreBadgeText: { fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+  scoreBadgeText: { fontSize: 12, fontWeight: '700', letterSpacing: 1, lineHeight: 16 },
   scoreDesc: {
     fontSize: 14,
     lineHeight: 22,
@@ -331,8 +341,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingHorizontal: 4,
   },
-  indicatorsTitle: { fontSize: 18 },
-  indicatorsDate: { fontSize: 12, fontWeight: '600', letterSpacing: 0.5 },
+  indicatorsTitle: { fontSize: 18, lineHeight: 24 },
+  indicatorsDate: { fontSize: 12, fontWeight: '600', letterSpacing: 0.5, lineHeight: 16 },
   indicatorsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -360,15 +370,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  indicatorPercent: { fontSize: 18, fontWeight: '700' },
-  indicatorLabel: { fontSize: 14, marginBottom: 8 },
+  indicatorPercent: { fontSize: 18, fontWeight: '700', lineHeight: 24 },
+  indicatorLabel: { fontSize: 14, marginBottom: 8, lineHeight: 20 },
   indicatorBarBg: {
     height: 6,
     borderRadius: 3,
     overflow: 'hidden',
   },
   indicatorBarFill: { height: '100%', borderRadius: 3 },
-  emptyIndicators: { fontSize: 14, paddingVertical: 16 },
+  emptyIndicators: { fontSize: 14, lineHeight: 20, paddingVertical: 16 },
   cta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -382,5 +392,5 @@ const styles = StyleSheet.create({
       android: { elevation: 4 },
     }),
   },
-  ctaText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  ctaText: { color: '#fff', fontSize: 16, fontWeight: '700', lineHeight: 22 },
 });

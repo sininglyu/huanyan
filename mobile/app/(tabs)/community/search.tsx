@@ -17,7 +17,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { apiGet } from '@/constants/api';
+import { apiGet, getAvatarFromUser } from '@/constants/api';
 
 const COLORS = {
   primary: '#C69C6D',
@@ -184,11 +184,13 @@ export default function CommunitySearchScreen() {
                 >
                   <View style={styles.cardTop}>
                     <View style={styles.cardAuthor}>
-                      {item.author?.avatarUrl ? (
-                        <Image source={{ uri: item.author.avatarUrl }} style={styles.avatar} />
+                      {(() => {
+                        const u = getAvatarFromUser(item.author);
+                        return u ? (
+                        <Image source={{ uri: u }} style={styles.avatar} resizeMode="cover" />
                       ) : (
                         <View style={[styles.avatar, styles.avatarPlaceholder]} />
-                      )}
+                      ); })()}
                       <View>
                         <ThemedText style={[styles.authorName, { color: COLORS.text }]}>
                           {item.author?.nickname ?? '用户'}

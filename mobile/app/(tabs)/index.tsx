@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,10 +8,11 @@ import {
   Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { apiGet, getAuthToken } from '@/constants/api';
 
 // Design tokens from HTML: primary #cfa577, background #f8f7f6, text #161412, subtitle #81766a, border #f4f2f1
 const HOME_COLORS = {
@@ -53,6 +54,27 @@ const cardStyle = {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [userName, setUserName] = useState<string>('焕颜用户');
+
+  const fetchProfile = useCallback(async () => {
+    if (!getAuthToken()) return;
+    try {
+      const p = await apiGet<{ nickname?: string }>('/user/profile');
+      if (p?.nickname?.trim()) setUserName(p.nickname.trim());
+    } catch {
+      // keep default
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile();
+    }, [fetchProfile])
+  );
 
   return (
     <ThemedView style={[styles.container, { backgroundColor: HOME_COLORS.background }]}>
@@ -60,7 +82,7 @@ export default function HomeScreen() {
       <View style={[styles.header, { backgroundColor: HOME_COLORS.background + 'CC', borderBottomColor: HOME_COLORS.border }]}>
         <View>
           <ThemedText style={[styles.greeting, { color: HOME_COLORS.subtitle }]}>早上好</ThemedText>
-          <ThemedText style={[styles.userName, { color: HOME_COLORS.text }]}>Sarah Jenkins</ThemedText>
+          <ThemedText style={[styles.userName, { color: HOME_COLORS.text }]}>{userName}</ThemedText>
         </View>
         <View style={styles.headerIcons}>
           <TouchableOpacity style={[styles.headerIconBtn, cardStyle]}>
